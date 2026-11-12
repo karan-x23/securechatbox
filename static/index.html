@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827"><title>Private Chat</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,Segoe UI,sans-serif}*{box-sizing:border-box}body{margin:0;background:#0b1020;color:#edf2ff;min-height:100vh;display:grid;place-items:center;padding:16px}.app{width:min(100%,680px);background:#121a2d;border:1px solid #26334e;border-radius:20px;padding:20px;box-shadow:0 20px 70px #0006}h1{font-size:1.35rem;margin:0 0 6px}.muted{color:#a9b6d0;font-size:.92rem;line-height:1.5}.row{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}input,button{font:inherit;border-radius:10px;padding:12px;border:1px solid #34435f}input{background:#0c1426;color:#fff;min-width:0;flex:1;width:100%}button{background:#7457e8;color:white;border:0;font-weight:650;cursor:pointer}button.secondary{background:#26344f}button:disabled{opacity:.5;cursor:not-allowed}.fields{display:grid;gap:10px;margin:18px 0}.status{font-size:.9rem;color:#b9c7e4;margin:12px 0}.chat{height:min(48vh,430px);overflow:auto;background:#0b1324;border:1px solid #26334e;border-radius:14px;padding:12px;margin:14px 0}.msg{padding:9px 11px;margin:8px 0;border-radius:12px;background:#202d49;overflow-wrap:anywhere}.msg.mine{background:#3c2f78;margin-left:12%}.who{font-size:.76rem;color:#c2b6ff;margin-bottom:3px}.hidden{display:none!important}.small{font-size:.78rem}.top{display:flex;justify-content:space-between;gap:10px;align-items:center}.switch{display:flex;align-items:center;gap:8px;font-size:.88rem}.switch input{width:auto;flex:0}.notice{background:#1b2943;border-radius:10px;padding:10px;margin-top:12px}
+</style></head>
+<body><main class="app">
+<div class="top"><div><h1>Private Chat</h1><div class="muted">A simple two-person encrypted chat</div></div><label class="switch"><input id="soundOn" type="checkbox" checked> Sound</label></div>
+<section id="setup">
+<p class="muted">Create a room or open a room link shared by the other person. Both people must use the same secret phrase.</p>
+<div class="fields"><input id="displayName" maxlength="32" placeholder="Your display name" autocomplete="nickname"><input id="secret" type="password" minlength="12" placeholder="Shared secret phrase (12+ characters)" autocomplete="off"></div>
+<div class="row"><button id="create">Create permanent link</button><button id="connect" class="secondary">Connect to this link</button></div>
+<div id="share" class="hidden"><div class="muted">Share this link with the other person:</div><div class="row"><input id="shareUrl" readonly><button id="copy" class="secondary">Copy</button></div></div>
+<div class="status" id="setupStatus">No push notifications are used.</div>
+</section>
+<section id="chatArea" class="hidden"><div class="top"><div class="status" id="connection">Connecting…</div><button id="leave" class="secondary">Disconnect</button></div><div class="chat" id="messages" aria-live="polite"></div><form id="sendForm" class="row"><input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off"><button id="send">Send</button></form><div class="muted small">Messages are relayed as ciphertext and are not saved by this server. Closing this page stops sound alerts.</div></section>
+<div class="notice muted small">Prototype notice: this has not had an independent security audit. Anyone with the room link can attempt to occupy a connection slot. Do not use for highly sensitive communication.</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,audio=null;
+const enc=new TextEncoder(),dec=new TextDecoder();
+function bytesToB64(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s)}
+function b64ToBytes(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+function validRoom(s){return /^[a-f0-9]{32}$/.test(s||'')}
+async function deriveKey(pass,room){const material=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt:enc.encode(room),iterations:310000,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])}
+async function encrypt(obj){const iv=crypto.getRandomValues(new Uint8Array(12));const data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));return {iv:bytesToB64(iv),data:bytesToB64(new Uint8Array(data))}}
+async function decrypt(payload){const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64ToBytes(payload.iv)},key,b64ToBytes(payload.data));return JSON.parse(dec.decode(raw))}
+function unlockAudio(){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}catch(e){audio=null}}
+function beep(){if(!$('soundOn').checked||!audio||audio.state!=='running')return;try{const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=740;g.gain.setValueAtTime(.0001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.08,audio.currentTime+.015);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.18);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.19)}catch(e){}}
+function addMessage(name,text,mine){const d=document.createElement('div');d.className='msg'+(mine?' mine':'');const w=document.createElement('div');w.className='who';w.textContent=name;const t=document.createElement('div');t.textContent=text;d.append(w,t);$('messages').append(d);$('messages').scrollTop=$('messages').scrollHeight}
+function showSetup(msg){$('setupStatus').textContent=msg||''}
+function setConnected(on){$('setup').classList.toggle('hidden',on);$('chatArea').classList.toggle('hidden',!on)}
+async function start(create){const name=$('displayName').value.trim(),pass=$('secret').value;if(!name){showSetup('Enter your display name.');return}if(pass.length<12){showSetup('Secret phrase must be at least 12 characters.');return}if(!window.crypto?.subtle){showSetup('This browser does not support secure encryption.');return}unlockAudio();if(create){roomId=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');location.hash=roomId;localStorage.setItem('privateChatRoom',roomId);$('shareUrl').value=location.href;$('share').classList.remove('hidden')}else{roomId=location.hash.slice(1)||localStorage.getItem('privateChatRoom');if(!validRoom(roomId)){showSetup('Open the room link first, including its # code.');return}}
+try{key=await deriveKey(pass,roomId);const scheme=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${scheme}://${location.host}/ws/${roomId}`);$('messages').replaceChildren();setConnected(true);$('connection').textContent='Connecting…';ws.onopen=()=>{$('connection').textContent='Connected'};ws.onmessage=async ev=>{let packet;try{packet=JSON.parse(ev.data);if(packet.type==='error'){$('connection').textContent=packet.message;return}if(packet.type==='ciphertext'){const obj=await decrypt(packet.payload);addMessage(obj.name,obj.text,false);beep()}}catch(e){$('connection').textContent='Could not decrypt message. Check the shared secret phrase.'}};ws.onclose=()=>{$('connection').textContent='Disconnected'};ws.onerror=()=>{$('connection').textContent='Connection error'};
+}catch(e){showSetup('Could not start chat: '+e.message)}}
+$('create').onclick=()=>start(true);$('connect').onclick=()=>start(false);$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('shareUrl').value);showSetup('Link copied.')}catch(e){$('shareUrl').select();showSetup('Select and copy the link.')}};
+$('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});ws.send(JSON.stringify({type:'ciphertext',payload}));addMessage('You',text,true);$('message').value=''}catch(e){$('connection').textContent='Message could not be encrypted.'}});
+$('leave').onclick=()=>{if(ws)ws.close();ws=null;key=null;setConnected(false);showSetup('Disconnected. No push notifications are sent.')};
+// Restore room fragment from this device if available; user still enters their name and shared phrase.
+if(!location.hash&&validRoom(localStorage.getItem('privateChatRoom')))location.hash=localStorage.getItem('privateChatRoom');
+</script></body></html>
