@@ -319,7 +319,7 @@ function configureInviteMode(){
  }
 }
 function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('message').placeholder='Write a message…' }
-function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden') }
+function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('shareInvite').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
 function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
 function addBubble(id,senderId,obj,createdAt,status='sent'){
