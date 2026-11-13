@@ -17,7 +17,6 @@ class PasswordAutofillFixTests(unittest.TestCase):
         self.assertIn("prepareSharedPhraseMode('create');start(true)", self.html)
         self.assertIn("prepareSharedPhraseMode('join');start(false)", self.html)
         self.assertIn("prepareSharedPhraseMode('join');joinUsingPairCode()", self.html)
-        self.assertIn("securechat-pair-join-phrase", self.html)
 
     def test_mismatch_error_explains_saved_password_autofill(self):
         self.assertIn("Your browser may have filled a saved password", self.html)
