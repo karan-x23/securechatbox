@@ -305,7 +305,8 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
    $('recoveryPanel').classList.add('hidden');
    $('recoveryCopyStatus').textContent=packet.recovery_saved?'Save a private backup before changing phones.':'This code is not linked to this room. Restore with the code you originally saved.'
    for(const item of (packet.history||[])){await displayPacket(item)}
-   $('roomMeta').textContent='End-to-end encrypted · messages are synced';$('shareStatus').textContent='Send this exact invite link to connect the other person.';scheduleReadCheck();return;
+   participantsStatus(packet.participants);
+   $('shareStatus').textContent='Send this exact invite link to connect the other person.';scheduleReadCheck();return;
   }
   if(packet.type==='message'){await displayPacket(packet);return}
   if(packet.type==='message_ack'){const id=packet.message_id,oldId=packet.client_message_id,node=messageNodes.get(oldId);if(node){rendered.delete(oldId);rendered.add(id);node.dataset.messageId=id;messageNodes.delete(oldId);messageNodes.set(id,node);const state=messageStates.get(oldId)||'sent';messageStates.delete(oldId);messageStates.set(id,state);updateTicks(id)}return}
