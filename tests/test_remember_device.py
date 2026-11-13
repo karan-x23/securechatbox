@@ -29,6 +29,7 @@ class RememberDeviceTests(unittest.TestCase):
         self.assertIn("async function forgetRememberedSession(targetRoom)", self.html)
         self.assertIn("await forgetRememberedSession(leavingRoom)", self.html)
         self.assertIn("This device has been forgotten.", self.html)
+        self.assertIn("<strong>Forget this device</strong>", self.html)
 
 
 if __name__ == "__main__":
