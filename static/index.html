@@ -663,6 +663,45 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 @media(max-width:360px){.chat-tools:before{font-size:.6rem}.chat-options-menu{width:min(270px,calc(100vw - 20px))}}
 @media(prefers-reduced-motion:reduce){.chat-options-menu{animation:none}}
 
+
+/* Tulips and tiny hearts — decorative only, keeping the chat calm and readable. */
+.welcome:before{
+ content:"🌷  ♡";
+ position:absolute;top:-10px;right:clamp(0px,5vw,34px);
+ font-family:ui-sans-serif,system-ui,sans-serif;
+ font-size:clamp(1.45rem,3vw,2rem);letter-spacing:.12em;
+ opacity:.82;transform:rotate(5deg);
+ filter:drop-shadow(0 5px 8px rgba(165,110,143,.12));
+ pointer-events:none;
+}
+.welcome h2 .title-tulip{
+ display:inline-block;margin-left:.12em;
+ font-family:ui-sans-serif,system-ui,sans-serif;
+ font-size:.52em;font-style:normal;font-weight:400;
+ letter-spacing:0;vertical-align:.08em;
+ filter:drop-shadow(0 3px 5px rgba(165,110,143,.13));
+}
+.chat-tools:before{
+ content:"🌷  a little place, just for the two of you  ♡";
+}
+.messages{position:relative;isolation:isolate}
+.messages:after{
+ content:"♡   🌷";
+ position:absolute;left:22px;bottom:12px;z-index:0;
+ color:#b985a1;font-size:1.8rem;letter-spacing:.18em;
+ opacity:.13;transform:rotate(-7deg);
+ pointer-events:none;user-select:none;
+}
+.msg,.empty-state{position:relative;z-index:1}
+.empty-state .empty-icon{
+ font-family:ui-sans-serif,system-ui,sans-serif;
+ font-size:1.55rem;
+}
+@media(max-width:720px){
+ .welcome:before{top:-5px;right:3px;font-size:1.45rem}
+ .messages:after{left:13px;bottom:8px;font-size:1.5rem}
+}
+
 </style></head>
 <body><div class="shell">
 <header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools">
@@ -678,7 +717,7 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 <section id="setup" class="setup">
  <div class="welcome">
   <div class="eyebrow">A PRIVATE LITTLE CORNER</div>
-  <h2>A little space.<br><span>Just for us.</span></h2>
+  <h2>A little space.<br><span>Just for us.</span> <span class="title-tulip" aria-hidden="true">🌷</span></h2>
   <p>Your own quiet corner to talk, share little moments, and stay close. Just the two of you, in a space that feels like yours.</p>
   <div class="privacy-points">
    <div class="privacy-point"><span class="point-icon">✧</span>Private conversations, by design</div>
@@ -723,7 +762,7 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
  </div>
  
  <div id="recoveryPanel" class="recovery-panel hidden"><div class="recovery-heading"><strong id="recoveryState">Your personal recovery code</strong><button id="closeRecovery" class="recovery-close" type="button" aria-label="Close recovery panel">×</button></div><p>Keep a personal backup so you can restore this chat on another phone. Your shared secret phrase is still required to read messages.</p><div class="recovery-line"><code id="recoveryCode" class="hidden"></code><button id="revealRecovery" class="secondary" type="button">Show code</button><button id="copyRecovery" type="button">Copy code</button></div><div id="recoveryCopyStatus" class="recovery-copy-status" role="status"></div></div>
- <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">♡</div><strong>Your little space is ready</strong><span>When your person joins, this is where the little conversations, smiles and everyday moments begin.</span></div></div>
+ <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">🌷</div><strong>Your little space is ready</strong><span>When your person joins, this is where the little conversations, smiles and everyday moments begin.</span></div></div>
  <div id="typing" class="typing"></div>
  <div id="emojiPicker" class="emoji-picker hidden" role="dialog" aria-label="Choose an emoji">
  <div class="emoji-picker-top"><strong>Emojis</strong><button type="button" id="closeEmoji" class="emoji-close" aria-label="Close emoji picker">×</button></div>
