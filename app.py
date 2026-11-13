@@ -7,6 +7,7 @@ import hmac
 import json
 import os
 import re
+import secrets
 import sqlite3
 import time
 import uuid
@@ -23,6 +24,8 @@ TITLE = "SecureChatBox"
 ROOM_RE = re.compile(r"^[a-f0-9]{32}$")
 PARTICIPANT_RE = re.compile(r"^[a-f0-9]{32}$")
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{40,100}$")
+PAIR_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+PAIR_CODE_RE = re.compile(r"^[A-HJ-NP-Z2-9]{16}$")
 HISTORY_LIMIT = 200
 HEARTBEAT_TIMEOUT = 75
 DB_PATH = os.environ.get("DATABASE_PATH", "./data/securechatbox.sqlite3")
@@ -68,6 +71,12 @@ def init_db() -> None:
                 room_id TEXT PRIMARY KEY,
                 auth_hash TEXT NOT NULL,
                 created_at REAL NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS room_invites (
+                pair_code TEXT PRIMARY KEY,
+                room_id TEXT NOT NULL UNIQUE,
+                created_at REAL NOT NULL,
+                FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
             );
             CREATE TABLE IF NOT EXISTS participants (
                 room_id TEXT NOT NULL,
@@ -119,6 +128,26 @@ def token_hash(token: str) -> str:
     # The client sends a PBKDF2-derived, room-specific verifier, never its password
     # or AES message key. Pepper adds protection to a database-only disclosure.
     return hashlib.sha256((AUTH_PEPPER + token).encode("utf-8")).hexdigest()
+
+
+def _ensure_pair_code(conn: sqlite3.Connection, room_id: str) -> str:
+    row = conn.execute(
+        "SELECT pair_code FROM room_invites WHERE room_id=?",
+        (room_id,),
+    ).fetchone()
+    if row:
+        return row["pair_code"]
+    for _ in range(8):
+        code = "".join(secrets.choice(PAIR_CODE_ALPHABET) for _ in range(16))
+        try:
+            conn.execute(
+                "INSERT INTO room_invites(pair_code, room_id, created_at) VALUES(?,?,?)",
+                (code, room_id, time.time()),
+            )
+            return code
+        except sqlite3.IntegrityError:
+            continue
+    raise RuntimeError("Could not allocate a unique pairing code")
 
 
 def _room_lock(room_id: str) -> asyncio.Lock:
@@ -206,6 +235,38 @@ async def health() -> dict[str, str]:
     with db() as conn:
         conn.execute("SELECT 1").fetchone()
     return {"status": "ok", "storage": "ok"}
+
+@app.post("/api/rooms/resolve")
+async def resolve_pair_code(payload: dict[str, Any]) -> JSONResponse:
+    raw_code = payload.get("pair_code") if isinstance(payload, dict) else None
+    if not isinstance(raw_code, str):
+        return JSONResponse(
+            {"detail": "Enter the pairing code you received."},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    code = re.sub(r"[\s-]", "", raw_code).upper()
+    if not PAIR_CODE_RE.fullmatch(code):
+        return JSONResponse(
+            {"detail": "That pairing code does not look right. Check all 16 characters."},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    with db() as conn:
+        row = conn.execute(
+            "SELECT room_id FROM room_invites WHERE pair_code=?",
+            (code,),
+        ).fetchone()
+    if not row:
+        return JSONResponse(
+            {"detail": "Pairing code not found. Ask the other person to open Invite and send the current code."},
+            status_code=404,
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(
+        {"room_id": row["room_id"]},
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.post("/api/recover")
@@ -308,6 +369,7 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
                 await websocket.close(code=1008, reason="Room not found or secret phrase is incorrect")
                 return
 
+            pair_code = _ensure_pair_code(conn, room_id)
             existing = conn.execute(
                 "SELECT recovery_hash FROM participants WHERE room_id=? AND participant_id=?",
                 (room_id, participant_id),
@@ -353,6 +415,7 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
             "type": "ready",
             "participant_id": participant_id,
             "recovery_saved": recovery_saved,
+            "pair_code": pair_code,
             "history": _history(room_id, participant_id),
             "participants": _presence(room_id),
         })

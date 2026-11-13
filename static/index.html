@@ -239,7 +239,30 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
  .empty-state{padding:22px 16px}
 }
 @media(prefers-reduced-motion:reduce){.msg{animation:none}}
-</style></head>
+.pair-entry{margin-top:12px;text-align:center}
+.pair-entry>button{min-height:36px;padding:6px 8px;background:transparent;color:#6555bd;font-size:.8rem}
+.pair-code-form{display:grid;gap:9px;margin-top:8px;padding:13px;background:#faf9ff;border:1px solid #ece7f7;border-radius:13px;text-align:left}
+.pair-code-form p{margin:0;color:#777486;font-size:.75rem;line-height:1.45}
+.pair-code-form input{text-align:center;text-transform:uppercase;letter-spacing:.12em;font-weight:750;font-size:16px}
+.pair-code-form button{width:100%;min-height:44px}
+.invite-panel{padding:15px 18px;background:#fbfaff;border-bottom:1px solid #ebe7f4;color:#514b68}
+.invite-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.invite-panel-head div{display:grid;gap:4px}
+.invite-panel-head strong{font-size:.86rem}
+.invite-panel-head span{font-size:.74rem;color:#898596}
+.invite-close{min-height:30px;width:30px;padding:0;background:transparent!important;color:#827b91!important;font-size:1.2rem;box-shadow:none!important}
+.pair-code-display{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding:11px 12px;background:#fff;border:1px solid #e9e4f2;border-radius:13px}
+.pair-code-display code{font:750 1rem ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.12em;color:#5b4bc0;overflow-wrap:anywhere}
+.pair-code-display button{min-height:38px;padding:8px 12px;white-space:nowrap;font-size:.76rem}
+.invite-panel p{margin:10px 0 11px;color:#777486;font-size:.75rem;line-height:1.5}
+.share-code-action{min-height:38px;padding:8px 13px;background:#f0edff;color:#5b4bc0;font-size:.76rem;border:1px solid #e7e1fa}
+@media(max-width:720px){
+ .pair-code-form{padding:12px}
+ .invite-panel{padding:12px}
+ .pair-code-display{align-items:stretch;flex-direction:column}
+ .pair-code-display code{text-align:center;font-size:.98rem}
+ .pair-code-display button,.share-code-action{width:100%;min-height:42px}
+}</style></head>
 <body><div class="shell">
 <header><div class="avatar" aria-hidden="true">S</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="shareInvite" class="secondary disconnect hidden" type="button">↗ Invite</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
 <main>
@@ -262,6 +285,14 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
    <div id="secretHint" class="secret-hint">Use the same phrase as the other person. A longer, unique phrase is safer.</div>
   </div>
   <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with invite link</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
+  <div class="pair-entry">
+   <button type="button" id="showPairCodeForm">Have a pairing code? Join without a link</button>
+   <div id="pairCodeForm" class="pair-code-form hidden">
+    <p>Enter the 16-character code the other person shared. You still need your shared secret phrase.</p>
+    <input id="pairCodeInput" maxlength="19" placeholder="ABCD-EFGH-JKLM-NPQR" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Pairing code">
+    <button type="button" id="joinByPairCode">Find and join private chat</button>
+   </div>
+  </div>
   <div class="recovery-link"><button type="button" id="showRecoveryForm">Already have a recovery code? Restore your chat</button></div>
   <div id="restoreBox" class="restore-box hidden"><p>Enter the personal recovery code you saved earlier. You will still need your shared secret phrase to open the conversation.</p><input id="restoreCode" maxlength="100" placeholder="Paste your recovery code" autocomplete="off" spellcheck="false"><div class="actions"><button type="button" id="restoreChat">Find my chat</button></div></div>
   <div id="setupStatus" class="statusline" role="status">Your private room is for two participants only.</div>
@@ -274,6 +305,12 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
   <button id="toggleRecovery" class="tertiary" type="button">My recovery code</button>
   <label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label>
  </div>
+ <div id="invitePanel" class="invite-panel hidden">
+  <div class="invite-panel-head"><div><strong>Invite your person</strong><span>Share this code so they can find the same private room.</span></div><button id="closeInvitePanel" class="invite-close" type="button" aria-label="Close invite panel">×</button></div>
+  <div class="pair-code-display"><code id="pairCodeDisplay">•••• •••• •••• ••••</code><button id="copyPairCode" type="button">Copy code</button></div>
+  <p>They can search for SecureChatBox, choose <strong>Join without a link</strong>, enter this code and use the same shared secret phrase.</p>
+  <button id="sharePairCode" class="share-code-action" type="button">Share pairing code</button>
+ </div>
  
  <div id="recoveryPanel" class="recovery-panel hidden"><div class="recovery-heading"><strong id="recoveryState">Your personal recovery code</strong><button id="closeRecovery" class="recovery-close" type="button" aria-label="Close recovery panel">×</button></div><p>Keep a personal backup so you can restore this chat on another phone. Your shared secret phrase is still required to read messages.</p><div class="recovery-line"><code id="recoveryCode" class="hidden"></code><button id="revealRecovery" class="secondary" type="button">Show code</button><button id="copyRecovery" type="button">Copy code</button></div><div id="recoveryCopyStatus" class="recovery-copy-status" role="status"></div></div>
  <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">♡</div><strong>Your private chat is ready</strong><span>Tap Invite in the top bar and send the invite to your person. Once they join with the same secret phrase, your conversation starts here.</span></div></div>
@@ -281,11 +318,14 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
  <form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off" aria-label="Message"><button id="send" aria-label="Send" disabled>➤</button></form>
 </section>
 </main></div><script>
-const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false;
+const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false,activePairCode=null;
 const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map(),readSent=new Set();
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64bytes(s){let v=s.replace(/-/g,'+').replace(/_/g,'/');v+='='.repeat((4-v.length%4)%4);return Uint8Array.from(atob(v),c=>c.charCodeAt(0))}
 function randomHex(n=16){return Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('')}
+function formatPairCode(code){return (code||'').replace(/[^A-Z2-9]/gi,'').toUpperCase().match(/.{1,4}/g)?.join(' ')||''}
+function normalizePairCode(code){return (code||'').replace(/[\s-]/g,'').toUpperCase()}
+function validPairCode(code){return /^[A-HJ-NP-Z2-9]{16}$/.test(normalizePairCode(code))}
 function validRoom(s){return /^[a-f0-9]{32}$/.test(s||'')}
 async function deriveBits(pass,salt){const material=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveBits']);return crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:310000,hash:'SHA-256'},material,256)}
 async function deriveKeys(pass,room){const aesBits=await deriveBits(pass,room+':e2e:v1');const authBits=await deriveBits(pass,room+':auth:v1');key=await crypto.subtle.importKey('raw',aesBits,{name:'AES-GCM'},false,['encrypt','decrypt']);return b64url(new Uint8Array(authBits))}
@@ -319,7 +359,7 @@ function configureInviteMode(){
  }
 }
 function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('message').placeholder='Write a message…' }
-function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('shareInvite').classList.add('hidden') }
+function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('shareInvite').classList.add('hidden');$('invitePanel').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
 function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
 function addBubble(id,senderId,obj,createdAt,status='sent'){
@@ -345,6 +385,8 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
   if(packet.type==='ready'){
    connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);
    if(action==='create'||action==='join'){$('shareInvite').classList.remove('hidden')}
+   activePairCode=packet.pair_code||localStorage.getItem('securechat:pair:'+roomId)||'';
+   if(activePairCode){localStorage.setItem('securechat:pair:'+roomId,activePairCode);$('pairCodeDisplay').textContent=formatPairCode(activePairCode)}
    const savedRecovery=localStorage.getItem('securechat:recovery:'+roomId)||'';
    $('recoveryCode').textContent=savedRecovery||'No recovery code is saved on this device.';
    $('recoveryCode').classList.add('hidden');
@@ -387,7 +429,30 @@ $('closeRecovery').onclick=()=>$('recoveryPanel').classList.add('hidden');
 $('revealRecovery').onclick=()=>{const code=$('recoveryCode');const show=code.classList.contains('hidden');code.classList.toggle('hidden',!show);$('revealRecovery').textContent=show?'Hide code':'Show code'};
 $('copyRecovery').onclick=async()=>{const code=localStorage.getItem('securechat:recovery:'+roomId)||'';if(!code){$('recoveryCopyStatus').textContent='No recovery code is available on this device.';return}try{await navigator.clipboard.writeText(code);$('recoveryCopyStatus').textContent='Copied. Store it somewhere private.'}catch(e){$('recoveryCode').classList.remove('hidden');$('revealRecovery').textContent='Hide code';$('recoveryCopyStatus').textContent='Clipboard unavailable. Select and copy the code above.'}};
 
-$('shareInvite').onclick=async()=>{const url=location.href;try{if(navigator.share){await navigator.share({title:'SecureChatBox invite',text:'Join my private chat using the same shared secret phrase.',url})}else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);$('roomMeta').textContent='Invite link copied · send it to the other person'}else{window.prompt('Copy this private invite link',url)}}catch(e){if(e&&e.name!=='AbortError')$('roomMeta').textContent='Could not share automatically. Try copying the page address.'}};
+$('shareInvite').onclick=()=>{$('invitePanel').classList.toggle('hidden');if(!$('invitePanel').classList.contains('hidden'))$('pairCodeDisplay').scrollIntoView({behavior:'smooth',block:'nearest'})};
+$('closeInvitePanel').onclick=()=>$('invitePanel').classList.add('hidden');
+$('copyPairCode').onclick=async()=>{if(!activePairCode){$('roomMeta').textContent='Pairing code is not available yet.';return}try{await navigator.clipboard.writeText(formatPairCode(activePairCode));$('copyPairCode').textContent='Copied';setTimeout(()=>$('copyPairCode').textContent='Copy code',1500)}catch(e){$('roomMeta').textContent='Select the pairing code to copy it.'}};
+$('sharePairCode').onclick=async()=>{if(!activePairCode)return;const code=formatPairCode(activePairCode);const text='Join my SecureChatBox private chat. Pairing code: '+code+'. Open SecureChatBox, choose “Join without a link”, enter this code and use our shared secret phrase.';try{if(navigator.share){await navigator.share({title:'SecureChatBox pairing code',text})}else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text);$('roomMeta').textContent='Pairing instructions copied.'}else{window.prompt('Copy these pairing instructions',text)}}catch(e){if(e&&e.name!=='AbortError')$('roomMeta').textContent='Could not open the share menu.'}};
+$('showPairCodeForm').onclick=()=>{$('pairCodeForm').classList.toggle('hidden');if(!$('pairCodeForm').classList.contains('hidden'))$('pairCodeInput').focus()};
+async function joinUsingPairCode(){
+ const code=normalizePairCode($('pairCodeInput').value);
+ if(!validPairCode(code)){$('setupStatus').textContent='Enter the 16-character pairing code.';$('pairCodeInput').focus();return}
+ if(!$('displayName').value.trim()){$('setupStatus').textContent='Enter your name first.';$('displayName').focus();return}
+ if(!$('secret').value){$('setupStatus').textContent='Enter the shared secret phrase first.';$('secret').focus();return}
+ $('joinByPairCode').disabled=true;$('setupStatus').textContent='Finding the private room…';
+ try{
+  const response=await fetch('/api/rooms/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pair_code:code})});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.detail||'Could not find this private room.');
+  roomId=data.room_id;location.hash=roomId;localStorage.setItem('secureChatRoom',roomId);
+  $('pairCodeInput').value=formatPairCode(code);$('pairCodeForm').classList.add('hidden');configureInviteMode();
+  $('setupStatus').textContent='Pairing code matched. Connecting to the same private room…';
+  await start(false);
+ }catch(e){$('setupStatus').textContent=e.message}
+ finally{$('joinByPairCode').disabled=false}
+}
+$('joinByPairCode').onclick=joinUsingPairCode;
+$('pairCodeInput').addEventListener('input',()=>{$('pairCodeInput').value=normalizePairCode($('pairCodeInput').value).slice(0,16).replace(/(.{4})(?=.)/g,'$1-')});
 $('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
 $('message').addEventListener('input',()=>{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type:'typing',active:true}));clearTimeout(typingTimer);typingTimer=setTimeout(()=>ws&&ws.readyState===WebSocket.OPEN&&ws.send(JSON.stringify({type:'typing',active:false})),1200)}});
 function pauseForBackground(){
