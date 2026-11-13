@@ -236,6 +236,32 @@ async def health() -> dict[str, str]:
         conn.execute("SELECT 1").fetchone()
     return {"status": "ok", "storage": "ok"}
 
+@app.post("/api/rooms/verify")
+async def verify_room_access(payload: dict[str, Any]) -> JSONResponse:
+    room_id = payload.get("room_id") if isinstance(payload, dict) else None
+    auth_token = payload.get("auth_token") if isinstance(payload, dict) else None
+    participant_id = payload.get("participant_id") if isinstance(payload, dict) else None
+    if not isinstance(room_id, str) or not ROOM_RE.fullmatch(room_id):
+        return JSONResponse({"detail": "Private room not found. Check the pairing code."}, status_code=404, headers={"Cache-Control": "no-store"})
+    if not isinstance(auth_token, str) or not TOKEN_RE.fullmatch(auth_token):
+        return JSONResponse({"detail": "Enter the shared password to continue."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not isinstance(participant_id, str) or not PARTICIPANT_RE.fullmatch(participant_id):
+        return JSONResponse({"detail": "Could not prepare this device session. Please try again."}, status_code=400, headers={"Cache-Control": "no-store"})
+    with db() as conn:
+        room = conn.execute("SELECT auth_hash FROM rooms WHERE room_id=?", (room_id,)).fetchone()
+        if not room:
+            return JSONResponse({"detail": "This private room is no longer available. Ask the other person to create a fresh room and pairing code."}, status_code=404, headers={"Cache-Control": "no-store"})
+        if not hmac.compare_digest(room["auth_hash"], token_hash(auth_token)):
+            return JSONResponse({"detail": "The shared password does not match this room. Check the exact password with the room creator."}, status_code=403, headers={"Cache-Control": "no-store"})
+        existing = conn.execute(
+            "SELECT 1 FROM participants WHERE room_id=? AND participant_id=?",
+            (room_id, participant_id),
+        ).fetchone()
+        count = conn.execute("SELECT COUNT(*) AS n FROM participants WHERE room_id=?", (room_id,)).fetchone()["n"]
+        if not existing and count >= 2:
+            return JSONResponse({"detail": "This private room already has two participants. Ask the creator for a new room."}, status_code=409, headers={"Cache-Control": "no-store"})
+    return JSONResponse({"status": "verified"}, headers={"Cache-Control": "no-store"})
+
 @app.post("/api/rooms/resolve")
 async def resolve_pair_code(payload: dict[str, Any]) -> JSONResponse:
     raw_code = payload.get("pair_code") if isinstance(payload, dict) else None
