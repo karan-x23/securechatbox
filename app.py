@@ -23,6 +23,7 @@ ROOM_RE = re.compile(r"^[a-f0-9]{32}$")
 PARTICIPANT_RE = re.compile(r"^[a-f0-9]{32}$")
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{40,100}$")
 HISTORY_LIMIT = 200
+HEARTBEAT_TIMEOUT = 75
 DB_PATH = os.environ.get("DATABASE_PATH", "./data/securechatbox.sqlite3")
 AUTH_PEPPER = os.environ.get("AUTH_PEPPER", "")
 
@@ -299,7 +300,16 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
         await _broadcast(room_id, {"type": "presence", "participants": _presence(room_id)}, exclude=participant_id)
 
         while True:
-            packet = await websocket.receive_json()
+            try:
+                packet = await asyncio.wait_for(websocket.receive_json(), timeout=HEARTBEAT_TIMEOUT)
+            except asyncio.TimeoutError:
+                # Mobile browsers may suspend background tabs. Expire the socket so
+                # the other participant receives an accurate Offline presence state.
+                try:
+                    await websocket.close(code=4000, reason="Heartbeat timed out")
+                except Exception:
+                    pass
+                break
             if not isinstance(packet, dict):
                 continue
             kind = packet.get("type")

@@ -14,16 +14,109 @@
 <meta name="twitter:card" content="summary">
 <title>SecureChatBox — Private Two-Person Chat</title>
 <style>
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;background:#0b141a;color:#e9edef;--panel:#111b21;--panel2:#202c33;--line:#2a3942;--green:#00a884;--muted:#aebac1;--bubble:#202c33;--mine:#005c4b}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#14242b 0,#0b141a 55%);display:grid;place-items:center;padding:16px}
-.shell{width:min(100%,900px);height:min(850px,calc(100dvh - 32px));min-height:560px;background:var(--panel);border:1px solid #263840;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 90px #0008}
-header{height:76px;flex:none;display:flex;align-items:center;gap:13px;padding:0 20px;background:#202c33;border-bottom:1px solid var(--line)}.avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg,#0b806c,#164f56);display:grid;place-items:center;font-weight:800;font-size:18px;color:white}.headcopy{min-width:0;flex:1}h1{font-size:1rem;margin:0 0 4px;font-weight:650}.sub{font-size:.8rem;color:var(--muted)}.headtools{display:flex;align-items:center;gap:12px}.sound{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px}.sound input{accent-color:var(--green)}
-main{flex:1;min-height:0;display:flex;flex-direction:column}.setup{width:min(520px,100%);margin:auto;padding:28px}.setup h2{font-size:1.5rem;margin:0 0 10px}.setup p{color:var(--muted);line-height:1.55;font-size:.92rem}.fields{display:grid;gap:11px;margin:22px 0}.secret-field{position:relative;display:flex;align-items:center}.secret-field input{padding-right:82px}.secret-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:7px 10px;background:transparent;color:var(--muted);font-size:.82rem}.secret-toggle:hover{color:#e9edef}.secret-hint{color:var(--muted);font-size:.78rem;line-height:1.4;margin-top:-5px}input{min-width:0;width:100%;background:#2a3942;color:#e9edef;border:1px solid #3a4a53;border-radius:10px;padding:14px;font:inherit;outline:none}input:focus{border-color:var(--green)}button{border:0;border-radius:9px;padding:12px 16px;background:var(--green);color:#062b22;font:inherit;font-weight:700;cursor:pointer}button.secondary{background:#2a3942;color:#e9edef}button:disabled{opacity:.45;cursor:not-allowed}.actions{display:flex;gap:10px;flex-wrap:wrap}.actions button{flex:1}.note{background:#18262d;color:#b8c5cb;padding:12px;border-radius:10px;font-size:.8rem;line-height:1.5;margin-top:18px}.hidden{display:none!important}.statusline{font-size:.83rem;color:var(--muted);margin:12px 0;min-height:20px}.share{margin-top:16px;background:#18262d;padding:12px;border-radius:10px}.share .actions{margin-top:9px}.share input{font-size:.78rem}
-.chatbg{flex:1;min-height:0;display:flex;flex-direction:column;background-color:#0b141a;background-image:radial-gradient(#ffffff08 1px,transparent 1px);background-size:18px 18px}.chatmeta{padding:8px 16px;background:#18262d;color:var(--muted);font-size:.76rem;text-align:center}.messages{flex:1;min-height:0;overflow:auto;padding:18px clamp(12px,5vw,54px);display:flex;flex-direction:column;gap:7px;scroll-behavior:smooth}.msg{max-width:min(78%,540px);align-self:flex-start;background:var(--bubble);border-radius:10px 10px 10px 3px;padding:9px 11px;box-shadow:0 1px 1px #0003;overflow-wrap:anywhere;white-space:pre-wrap}.msg.mine{align-self:flex-end;background:var(--mine);border-radius:10px 10px 3px 10px}.msgbody{font-size:.93rem;line-height:1.45}.msgfoot{display:flex;justify-content:flex-end;align-items:center;gap:7px;color:#b4c7c2;font-size:.68rem;margin-top:4px}.tick{font-weight:800;color:#b4c7c2}.tick.read{color:#53bdeb}.sender{font-size:.72rem;color:#7fd7c2;margin-bottom:3px}.typing{height:20px;padding:0 20px;color:var(--muted);font-size:.76rem}.composer{display:flex;align-items:flex-end;gap:9px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#202c33}.composer input{border:0;border-radius:22px;background:#2a3942;padding:13px 17px;resize:none}.composer button{width:45px;height:45px;flex:none;border-radius:50%;padding:0;font-size:1.1rem}.disconnect{font-size:.78rem}
-@media(max-width:600px){body{padding:0}.shell{height:100dvh;min-height:0;border:0;border-radius:0}.setup{padding:23px}.msg{max-width:88%}header{padding:0 14px;height:68px}.headtools{gap:8px}.sound{font-size:.72rem}}
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;background:#0b141a;color:#e9edef;--panel:#111b21;--panel2:#202c33;--line:#2a3942;--green:#00a884;--muted:#aebac1;--bubble:#202c33;--mine:#075e50;--blue:#53bdeb}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0}
+body{min-height:100svh;background:radial-gradient(ellipse at top,#14242b 0,#0b141a 58%);display:grid;place-items:center;padding:20px}
+.shell{width:min(100%,900px);height:min(900px,calc(100dvh - 40px));min-height:0;background:var(--panel);border:1px solid #263840;border-radius:22px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 90px #0008}
+header{height:78px;flex:none;display:flex;align-items:center;gap:13px;padding:0 22px;background:linear-gradient(180deg,#24343b,#202c33);border-bottom:1px solid var(--line)}
+.avatar{width:44px;height:44px;flex:none;border-radius:50%;background:linear-gradient(145deg,#0b806c,#164f56);display:grid;place-items:center;font-weight:800;font-size:16px;letter-spacing:-.04em;color:white;box-shadow:0 0 0 3px #ffffff0c}
+.headcopy{min-width:0;flex:1}
+h1{font-size:1rem;margin:0 0 5px;font-weight:700;letter-spacing:.01em}
+.sub{font-size:.8rem;color:var(--muted)}
+.status-sub{display:flex;align-items:center;gap:7px;min-width:0}
+#topStatus{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.presence-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#8a969c}
+.presence-dot.online{background:#21c987;box-shadow:0 0 0 3px #21c98720}
+.presence-dot.offline{background:#839098}
+.presence-dot.waiting{background:#d6a84f}
+.headtools{display:flex;align-items:center;gap:10px}
+.sound{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sound input{width:16px;height:16px;accent-color:var(--green)}
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+.setup{width:min(520px,100%);margin:auto;padding:30px}
+.setup h2{font-size:1.55rem;line-height:1.2;margin:0 0 11px;letter-spacing:-.025em}
+.setup p{color:var(--muted);line-height:1.6;font-size:.94rem;margin:0}
+.fields{display:grid;gap:11px;margin:22px 0}
+.secret-field{position:relative;display:flex;align-items:center}
+.secret-field input{padding-right:82px}
+.secret-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:7px 10px;background:transparent;color:var(--muted);font-size:.82rem}
+.secret-toggle:hover{color:#e9edef}
+.secret-hint{color:var(--muted);font-size:.78rem;line-height:1.4;margin-top:-5px}
+input{min-width:0;width:100%;min-height:46px;background:#2a3942;color:#e9edef;border:1px solid #3a4a53;border-radius:12px;padding:13px 14px;font:inherit;outline:none}
+input:focus{border-color:var(--green);box-shadow:0 0 0 3px #00a88420}
+button{min-height:44px;border:0;border-radius:11px;padding:11px 16px;background:var(--green);color:#062b22;font:inherit;font-weight:700;cursor:pointer;touch-action:manipulation;transition:filter .15s ease,transform .15s ease}
+button:hover{filter:brightness(1.06)}
+button:active{transform:scale(.98)}
+button.secondary{background:#2a3942;color:#e9edef}
+button:disabled{opacity:.45;cursor:not-allowed}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions button{flex:1}
+.note{background:#18262d;color:#b8c5cb;padding:13px;border:1px solid #263840;border-radius:12px;font-size:.8rem;line-height:1.55;margin-top:18px}
+.hidden{display:none!important}
+.statusline{font-size:.83rem;color:var(--muted);margin:12px 0;min-height:20px}
+.share{margin-top:16px;background:#18262d;padding:12px;border-radius:12px;border:1px solid var(--line)}
+.share .actions{margin-top:9px}
+.share input{font-size:.78rem}
+.chatbg{flex:1;min-height:0;display:flex;flex-direction:column;background-color:#0b141a;background-image:radial-gradient(#ffffff08 1px,transparent 1px);background-size:18px 18px}
+.chatmeta{padding:9px 16px;background:#18262d;color:var(--muted);font-size:.76rem;text-align:center;border-bottom:1px solid #263840}
+.messages{flex:1;min-height:0;overflow:auto;padding:20px clamp(12px,5vw,54px);display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;overscroll-behavior:contain}
+.msg{max-width:min(78%,560px);align-self:flex-start;background:linear-gradient(145deg,#25343b,#202c33);border:1px solid #ffffff08;border-radius:14px 14px 14px 4px;padding:10px 13px;box-shadow:0 2px 5px #0002;overflow-wrap:anywhere;white-space:pre-wrap}
+.msg.mine{align-self:flex-end;background:linear-gradient(145deg,#096b59,#075e50);border-color:#ffffff0c;border-radius:14px 14px 4px 14px}
+.msgbody{font-size:.94rem;line-height:1.5}
+.msgfoot{display:flex;justify-content:flex-end;align-items:center;gap:7px;color:#c1d0cc;font-size:.68rem;margin-top:5px}
+.tick{font-weight:800;letter-spacing:-.13em;color:#c1d0cc;font-size:.84rem}
+.tick.read{color:var(--blue)}
+.sender{font-size:.72rem;color:#7fd7c2;margin-bottom:4px;font-weight:650}
+.typing{height:23px;flex:none;padding:2px 20px 0;color:var(--muted);font-size:.76rem}
+.composer{display:flex;align-items:center;gap:9px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#202c33;border-top:1px solid #2a3942}
+.composer input{border:1px solid #35464e;border-radius:24px;background:#2a3942;padding:12px 17px;min-height:48px;font-size:16px}
+.composer button{width:48px;height:48px;min-height:48px;flex:none;border-radius:50%;padding:0;font-size:1.15rem}
+.disconnect{font-size:.78rem;min-height:40px;padding:9px 13px}
+@media(max-width:640px){
+ html,body{height:100%;min-height:100%;overflow:hidden}
+ body{display:block;height:100dvh;min-height:100dvh;padding:0;background:#0b141a}
+ .shell{width:100%;height:100dvh;min-height:0;border:0;border-radius:0;box-shadow:none}
+ header{height:auto;min-height:72px;padding:calc(9px + env(safe-area-inset-top)) 13px 9px;gap:10px}
+ .avatar{width:40px;height:40px;font-size:15px}
+ h1{font-size:.96rem;margin-bottom:4px}
+ .sub{font-size:.75rem}
+ .headtools{gap:7px}
+ .sound{font-size:.72rem;gap:4px}
+ .sound input{width:17px;height:17px}
+ .disconnect{padding:8px 10px;min-height:40px;font-size:.74rem}
+ main{min-height:0}
+ .setup{width:100%;height:100%;max-height:100%;overflow-y:auto;padding:26px 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;justify-content:center}
+ .setup h2{font-size:1.48rem}
+ .setup p{font-size:.91rem}
+ .fields{gap:10px;margin:20px 0}
+ input{min-height:49px;font-size:16px}
+ .actions{flex-direction:column;gap:9px}
+ .actions button{width:100%;min-height:49px;flex:1}
+ .note{font-size:.78rem;margin-top:16px}
+ .chatmeta{padding:8px 10px;font-size:.72rem}
+ .messages{padding:14px 12px 10px;gap:8px}
+ .msg{max-width:88%;padding:10px 12px;border-radius:13px 13px 13px 4px}
+ .msg.mine{border-radius:13px 13px 4px 13px}
+ .msgbody{font-size:.96rem;line-height:1.48}
+ .msgfoot{font-size:.68rem;margin-top:4px}
+ .typing{height:22px;padding:2px 14px 0}
+ .composer{gap:8px;padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
+ .composer input{min-height:48px;padding:12px 15px}
+ .composer button{width:48px;height:48px;min-height:48px}
+}
+@media(max-width:360px){
+ header{gap:8px;padding-left:10px;padding-right:10px}
+ .headtools{gap:5px}
+ .sound{font-size:.68rem}
+ .disconnect{padding:7px 8px}
+ .setup{padding-left:17px;padding-right:17px}
+ .messages{padding-left:9px;padding-right:9px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 </style></head>
 <body><div class="shell">
-<header><div class="avatar">S</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub" id="topStatus">Private one-to-one chat</div></div><div class="headtools"><label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
+<header><div class="avatar">SC</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">Waiting for the other person</span></div></div><div class="headtools"><label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
 <main>
 <section id="setup" class="setup"><h2>Your private chat</h2><p>SecureChatBox is a private browser chat for two people. Create a room and share its link, or open the room link shared with you. Both people use the same secret phrase. Messages are encrypted in the browser before they reach the server.</p>
 <div class="fields"><input id="displayName" maxlength="32" placeholder="Your name" autocomplete="nickname"><div class="secret-field"><input id="secret" type="password" placeholder="Shared password" autocomplete="current-password" aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div><div id="secretHint" class="secret-hint">Any non-empty password works. A longer, unique passphrase is safer.</div></div>
@@ -35,8 +128,8 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}.setup{width:min(520
 <section id="chatArea" class="chatbg hidden"><div class="chatmeta" id="roomMeta">Connecting securely…</div><div id="messages" class="messages" aria-live="polite"></div><div id="typing" class="typing"></div><form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Message" autocomplete="off" aria-label="Message"><button id="send" aria-label="Send" disabled>➤</button></form></section>
 </main></div>
 <script>
-const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null;
-const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map();
+const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false;
+const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map(),readSent=new Set();
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64bytes(s){let v=s.replace(/-/g,'+').replace(/_/g,'/');v+='='.repeat((4-v.length%4)%4);return Uint8Array.from(atob(v),c=>c.charCodeAt(0))}
 function randomHex(n=16){return Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('')}
@@ -48,23 +141,27 @@ async function decrypt(payload){const raw=await crypto.subtle.decrypt({name:'AES
 function participantStorageKey(){return 'securechat:participant:'+roomId}
 function unlockAudio(){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}catch(e){audio=null}}
 function beep(){if(!$('soundOn').checked||!audio||audio.state!=='running')return;try{const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=680;g.gain.setValueAtTime(.0001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.06,audio.currentTime+.015);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.16);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.17)}catch(e){}}
-function setStatus(s){$('topStatus').textContent=s}
+function setStatus(s){$('topStatus').textContent=s;const dot=$('presenceDot');if(dot){dot.className='presence-dot';const value=s.toLowerCase();dot.classList.add(value.includes('online')?'online':value.includes('offline')?'offline':'waiting')}}
 function setSetupStatus(s){$('setupStatus').textContent=s||''}
 function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden') }
 function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
-function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'?'✓✓':state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read')}
+function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
 function addBubble(id,senderId,obj,createdAt,status='sent'){
  if(rendered.has(id))return;rendered.add(id);const mine=senderId===participantId;const box=document.createElement('div');box.className='msg'+(mine?' mine':'');box.dataset.messageId=id;
  if(!mine){const sender=document.createElement('div');sender.className='sender';sender.textContent=obj.name||'Other participant';box.append(sender)}
  const body=document.createElement('div');body.className='msgbody';body.textContent=obj.text||'';box.append(body);
  const foot=document.createElement('div');foot.className='msgfoot';const tm=document.createElement('span');tm.textContent=timeLabel(createdAt||Date.now()/1000);foot.append(tm);
  if(mine){const tick=document.createElement('span');tick.className='tick';tick.textContent='✓';foot.append(tick)}box.append(foot);$('messages').append(box);$('messages').scrollTop=$('messages').scrollHeight;
- messageNodes.set(id,box);messageStates.set(id,status);updateTicks(id);if(!mine){sendReceipt('delivered',id);if(document.visibilityState==='visible')sendReceipt('read',id);beep()}
+ messageNodes.set(id,box);messageStates.set(id,status);updateTicks(id);
+ if(!mine){sendReceipt('delivered',id);if(status==='read')readSent.add(id);beep();requestAnimationFrame(markVisibleMessagesRead)}
 }
 async function displayPacket(item){try{const obj=await decrypt(item.payload);const status=item.read?'read':item.delivered?'delivered':'sent';const oldId=item.sender_id===participantId?item.client_message_id:null;const pending=oldId?messageNodes.get(oldId):null;if(pending&&!messageNodes.has(item.message_id)){rendered.delete(oldId);rendered.add(item.message_id);pending.dataset.messageId=item.message_id;messageNodes.delete(oldId);messageNodes.set(item.message_id,pending);messageStates.delete(oldId);messageStates.set(item.message_id,status);const foot=pending.querySelector('.msgfoot span');if(foot)foot.textContent=timeLabel(item.created_at);updateTicks(item.message_id);return}addBubble(item.message_id,item.sender_id,obj,item.created_at,status)}catch(e){$('roomMeta').textContent='A saved message could not be decrypted. Check the shared secret phrase.'}}
-function participantsStatus(list){const others=(list||[]).filter(p=>p.id!==participantId&&p.online);if(others.length){setStatus((others[0].name||'Participant')+' · online');$('roomMeta').textContent='End-to-end encrypted · private room'}else{setStatus('Waiting for the other person');$('roomMeta').textContent='You are connected · waiting for the other person'}}
-function sendReceipt(type,id){if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type,message_id:id}))}
+function participantsStatus(list){const other=(list||[]).find(p=>p.id!==participantId);if(!other){setStatus('Waiting for the other person');$('roomMeta').textContent='You are connected · waiting for the other person';return}setStatus((other.name||'Participant')+(other.online?' · Online':' · Offline'));$('roomMeta').textContent=other.online?'End-to-end encrypted · private room':'End-to-end encrypted · your contact is offline'}
+function sendReceipt(type,id){if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type,message_id:id}));if(type==='read')readSent.add(id)}}
+function chatIsActive(){return document.visibilityState==='visible'&&(typeof document.hasFocus!=='function'||document.hasFocus())&&!$('chatArea').classList.contains('hidden')&&ws&&ws.readyState===WebSocket.OPEN}
+function markVisibleMessagesRead(){if(!chatIsActive())return;const viewport=$('messages').getBoundingClientRect();for(const [id,node] of messageNodes){if(node.classList.contains('mine')||readSent.has(id))continue;const rect=node.getBoundingClientRect();const visibleHeight=Math.max(0,Math.min(rect.bottom,viewport.bottom)-Math.max(rect.top,viewport.top));const visibleWidth=Math.max(0,Math.min(rect.right,viewport.right)-Math.max(rect.left,viewport.left));const denominator=Math.max(1,Math.min(rect.height,viewport.height));if(visibleHeight/denominator>=0.6&&visibleWidth>0)sendReceipt('read',id)}}
+function scheduleReadCheck(){if(readRefreshScheduled)return;readRefreshScheduled=true;requestAnimationFrame(()=>{readRefreshScheduled=false;markVisibleMessagesRead()})}
 function clearTimers(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}if(pingTimer){clearInterval(pingTimer);pingTimer=null}}
 function connectSocket(action,authToken){clearTimers();manualLeave=false;activeAction=action;const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}/ws/${roomId}`);setStatus(action==='create'?'Creating private room…':'Connecting…');showChat();$('send').disabled=true;
  ws.onopen=()=>{ws.send(JSON.stringify({type:'hello',action:activeAction,participant_id:participantId,name:$('displayName').value.trim(),auth_token:authToken}));pingTimer=setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},25000)};
@@ -73,7 +170,7 @@ function connectSocket(action,authToken){clearTimers();manualLeave=false;activeA
    connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);
    if(action==='create'||action==='join'){$('shareUrl').value=location.href;$('share').classList.remove('hidden')}
    for(const item of (packet.history||[])){await displayPacket(item)}
-   $('roomMeta').textContent='End-to-end encrypted · messages are synced';return;
+   $('roomMeta').textContent='End-to-end encrypted · messages are synced';scheduleReadCheck();return;
   }
   if(packet.type==='message'){await displayPacket(packet);return}
   if(packet.type==='message_ack'){const id=packet.message_id,oldId=packet.client_message_id,node=messageNodes.get(oldId);if(node){rendered.delete(oldId);rendered.add(id);node.dataset.messageId=id;messageNodes.delete(oldId);messageNodes.set(id,node);const state=messageStates.get(oldId)||'sent';messageStates.delete(oldId);messageStates.set(id,state);updateTicks(id)}return}
@@ -92,14 +189,14 @@ function connectSocket(action,authToken){clearTimers();manualLeave=false;activeA
 async function start(create){const name=$('displayName').value.trim(),pass=$('secret').value;if(!name){setSetupStatus('Enter your display name.');return}if(pass.length===0){setSetupStatus('Enter your shared password.');$('secret').focus();return}if(!window.crypto?.subtle){setSetupStatus('This browser does not support secure encryption.');return}unlockAudio();
  if(create){roomId=randomHex();participantId=randomHex();location.hash=roomId;localStorage.setItem(participantStorageKey(),participantId)}else{roomId=location.hash.slice(1)||localStorage.getItem('secureChatRoom');if(!validRoom(roomId)){setSetupStatus('Open the room link first, including its # room code.');return}participantId=localStorage.getItem(participantStorageKey());if(!participantId){participantId=randomHex();localStorage.setItem(participantStorageKey(),participantId)}}
  localStorage.setItem('secureChatRoom',roomId);localStorage.setItem('secureChatName',name);setSetupStatus('Preparing encryption…');
- try{const authToken=await deriveKeys(pass,roomId);$('messages').replaceChildren();rendered.clear();messageNodes.clear();messageStates.clear();const action=create?'create':'join';connectSocket(action,authToken)}catch(e){setSetupStatus('Could not prepare secure chat: '+e.message)}
+ try{const authToken=await deriveKeys(pass,roomId);$('messages').replaceChildren();rendered.clear();messageNodes.clear();messageStates.clear();readSent.clear();const action=create?'create':'join';connectSocket(action,authToken)}catch(e){setSetupStatus('Could not prepare secure chat: '+e.message)}
 }
 const secretInput=$('secret'),toggleSecret=$('toggleSecret');toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
 $('displayName').value=localStorage.getItem('secureChatName')||'';$('create').onclick=()=>start(true);$('connect').onclick=()=>start(false);
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('shareUrl').value);setSetupStatus('Private link copied.')}catch(e){$('shareUrl').select();setSetupStatus('Select and copy the link.')}};
 $('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
 $('message').addEventListener('input',()=>{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type:'typing',active:true}));clearTimeout(typingTimer);typingTimer=setTimeout(()=>ws&&ws.readyState===WebSocket.OPEN&&ws.send(JSON.stringify({type:'typing',active:false})),1200)}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&ws&&ws.readyState===WebSocket.OPEN){for(const id of rendered){const node=messageNodes.get(id);if(node&&!node.classList.contains('mine'))sendReceipt('read',id)}}});
+document.addEventListener('visibilitychange',scheduleReadCheck);window.addEventListener('focus',scheduleReadCheck);window.addEventListener('pageshow',scheduleReadCheck);$('messages').addEventListener('scroll',scheduleReadCheck,{passive:true});
 $('leave').onclick=()=>{manualLeave=true;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;connected=false;showSetup();setSetupStatus('Disconnected. Your saved chat remains available when you join again.');setStatus('Not connected')};
 if(!location.hash&&validRoom(localStorage.getItem('secureChatRoom')))location.hash=localStorage.getItem('secureChatRoom');
 </script></body></html>
