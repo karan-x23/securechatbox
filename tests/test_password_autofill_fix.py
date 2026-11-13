@@ -12,7 +12,7 @@ class PasswordAutofillFixTests(unittest.TestCase):
         self.assertNotIn('id="secret" type="password" placeholder="Enter your shared password" autocomplete="current-password"', self.html)
 
     def test_create_and_join_set_distinct_autocomplete_modes(self):
-        self.assertIn("function prepareSharedPhrase(mode)", self.html)
+        self.assertIn("function prepareSharedPhraseMode(mode)", self.html)
         self.assertIn("mode==='create'?'new-password':'off'", self.html)
         self.assertIn("prepareSharedPhraseMode('create');start(true)", self.html)
         self.assertIn("prepareSharedPhraseMode('join');start(false)", self.html)
