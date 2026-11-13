@@ -22,6 +22,7 @@ from fastapi.staticfiles import StaticFiles
 
 TITLE = "SecureChatBox"
 ROOM_RE = re.compile(r"^[a-f0-9]{32}$")
+ROOM_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9 _-]{1,39}$")
 PARTICIPANT_RE = re.compile(r"^[a-f0-9]{32}$")
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{40,100}$")
 PAIR_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -128,6 +129,18 @@ def token_hash(token: str) -> str:
     # The client sends a PBKDF2-derived, room-specific verifier, never its password
     # or AES message key. Pepper adds protection to a database-only disclosure.
     return hashlib.sha256((AUTH_PEPPER + token).encode("utf-8")).hexdigest()
+
+def normalize_room_name(value: str) -> str:
+    """Normalize a public room locator consistently before deriving its ID."""
+    return " ".join(value.strip().split()).lower()
+
+
+def room_id_for_name(value: str) -> str:
+    """Derive a stable room ID from a room name; this is not an access credential."""
+    normalized = normalize_room_name(value)
+    return hashlib.sha256(
+        f"securechatbox:room-name:v1:{normalized}".encode("utf-8")
+    ).hexdigest()[:32]
 
 
 def _ensure_pair_code(conn: sqlite3.Connection, room_id: str) -> str:
@@ -253,7 +266,7 @@ async def verify_room_access(payload: dict[str, Any]) -> JSONResponse:
     with db() as conn:
         room = conn.execute("SELECT auth_hash FROM rooms WHERE room_id=?", (room_id,)).fetchone()
         if not room:
-            return JSONResponse({"detail": "This private room is no longer available. Ask the other person to create a fresh room and pairing code."}, status_code=404, headers={"Cache-Control": "no-store"})
+            return JSONResponse({"detail": "No private room was found for this room name or invite. Check the room name, or ask the creator to create the room first."}, status_code=404, headers={"Cache-Control": "no-store"})
         if not hmac.compare_digest(room["auth_hash"], token_hash(auth_token)):
             return JSONResponse({"detail": "The shared password does not match this room. Check the exact password with the room creator."}, status_code=403, headers={"Cache-Control": "no-store"})
         existing = conn.execute(
@@ -264,6 +277,29 @@ async def verify_room_access(payload: dict[str, Any]) -> JSONResponse:
         if not existing and count >= 2:
             return JSONResponse({"detail": "This private room already has two participants. Ask the creator for a new room."}, status_code=409, headers={"Cache-Control": "no-store"})
     return JSONResponse({"status": "verified"}, headers={"Cache-Control": "no-store"})
+
+@app.post("/api/rooms/resolve-name")
+async def resolve_room_name(payload: dict[str, Any]) -> JSONResponse:
+    raw_name = payload.get("room_name") if isinstance(payload, dict) else None
+    if not isinstance(raw_name, str):
+        return JSONResponse(
+            {"detail": "Enter the room name shared by the creator."},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    normalized = normalize_room_name(raw_name)
+    if not ROOM_NAME_RE.fullmatch(normalized):
+        return JSONResponse(
+            {"detail": "Room name must be 2–40 characters and use only letters, numbers, spaces, hyphens or underscores."},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    # Room names locate rooms only. The shared secret is still verified by /api/rooms/verify.
+    return JSONResponse(
+        {"room_id": room_id_for_name(normalized), "room_name": normalized},
+        headers={"Cache-Control": "no-store"},
+    )
+
 
 @app.post("/api/rooms/resolve")
 async def resolve_pair_code(payload: dict[str, Any]) -> JSONResponse:
