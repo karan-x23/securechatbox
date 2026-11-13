@@ -845,7 +845,7 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false,activePairCode=null;
 const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map(),readSent=new Set();
 const MAX_VOICE_DURATION_SECONDS=30,MAX_VOICE_BYTES=240*1024;
-let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceBytes=0,voiceStartedAt=0,voiceTimer=null,voicePreviewBlob=null,voicePreviewUrl=null,voiceDiscardOnStop=false,voiceTooLarge=false;
+let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceBytes=0,voiceStartedAt=0,voiceTimer=null,voiceHardStopTimer=null,voiceDurationSeconds=0,voicePreviewBlob=null,voicePreviewUrl=null,voiceDiscardOnStop=false,voiceTooLarge=false;
 const voiceObjectUrls=[];
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64bytes(s){let v=s.replace(/-/g,'+').replace(/_/g,'/');v+='='.repeat((4-v.length%4)%4);return Uint8Array.from(atob(v),c=>c.charCodeAt(0))}
@@ -1031,17 +1031,49 @@ function configureInviteMode(){
  }
 }
 
+
+async function measureRecordedVoiceDuration(blob){
+ const url=URL.createObjectURL(blob);
+ const probe=new Audio();
+ try{
+  const duration=await new Promise((resolve,reject)=>{
+   const timeout=setTimeout(()=>reject(new Error('Audio duration metadata timed out.')),7000);
+   const finish=(fn,value)=>{clearTimeout(timeout);probe.onloadedmetadata=null;probe.onerror=null;fn(value)};
+   probe.onloadedmetadata=()=>finish(resolve,probe.duration);
+   probe.onerror=()=>finish(reject,new Error('Audio metadata could not be read.'));
+   probe.preload='metadata';probe.src=url;probe.load();
+  });
+  if(Number.isFinite(duration)&&duration>0)return duration;
+ }catch(error){
+  // Some browsers omit duration metadata for MediaRecorder WebM files.
+ }finally{
+  probe.pause();probe.removeAttribute('src');probe.load();URL.revokeObjectURL(url);
+ }
+ const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+ if(AudioContextClass){
+  const context=new AudioContextClass();
+  try{
+   const decoded=await context.decodeAudioData(await blob.arrayBuffer());
+   if(Number.isFinite(decoded.duration)&&decoded.duration>0)return decoded.duration;
+  }catch(error){
+  }finally{await context.close().catch(()=>{})}
+ }
+ return NaN;
+}
 function setVoiceStatus(message){$('voiceStatus').textContent=message||''}
 function releaseVoiceStream(){if(voiceStream){for(const track of voiceStream.getTracks())track.stop();voiceStream=null}}
 function resetVoiceRecordButton(){$('voiceRecord').classList.remove('is-recording');$('voiceRecord').textContent='🎙';$('voiceRecord').setAttribute('aria-label','Record voice note');$('voiceRecord').title='Record voice note'}
 function clearVoiceDraft(){
  if(voiceRecorder&&voiceRecorder.state!=='inactive'){voiceDiscardOnStop=true;try{voiceRecorder.stop()}catch(error){}}
+ if(voiceHardStopTimer){clearTimeout(voiceHardStopTimer);voiceHardStopTimer=null}
+ if(voiceTimer){clearInterval(voiceTimer);voiceTimer=null}
  if(voicePreviewUrl){URL.revokeObjectURL(voicePreviewUrl);voicePreviewUrl=null}
- voicePreviewBlob=null;$('voicePreview').removeAttribute('src');$('voicePreview').load();$('voicePreviewPanel').classList.add('hidden');
+ voicePreviewBlob=null;voiceDurationSeconds=0;$('voicePreview').removeAttribute('src');$('voicePreview').load();$('voicePreviewPanel').classList.add('hidden');
 }
 function stopVoiceRecording(discard=false){
  if(discard)voiceDiscardOnStop=true;
  if(voiceTimer){clearInterval(voiceTimer);voiceTimer=null}
+ if(voiceHardStopTimer){clearTimeout(voiceHardStopTimer);voiceHardStopTimer=null}
  if(voiceRecorder&&voiceRecorder.state==='recording'){try{voiceRecorder.stop()}catch(error){releaseVoiceStream();voiceRecorder=null;resetVoiceRecordButton()}}
  else{releaseVoiceStream();resetVoiceRecordButton()}
 }
@@ -1061,21 +1093,27 @@ async function startVoiceRecording(){
    voiceChunks.push(event.data);
   };
   voiceRecorder.onerror=()=>{voiceTooLarge=true;stopVoiceRecording(true);setVoiceStatus('Recording failed. Please try again.')};
-  voiceRecorder.onstop=()=>{
+  voiceRecorder.onstop=async()=>{
    const recorder=voiceRecorder;voiceRecorder=null;releaseVoiceStream();
    if(voiceTimer){clearInterval(voiceTimer);voiceTimer=null}
+   if(voiceHardStopTimer){clearTimeout(voiceHardStopTimer);voiceHardStopTimer=null}
    resetVoiceRecordButton();
-   if(voiceDiscardOnStop){voiceDiscardOnStop=false;voiceChunks=[];voiceBytes=0;return}
-   if(voiceTooLarge){voiceChunks=[];voiceBytes=0;setVoiceStatus('Voice note exceeded 240 KB. Please record a shorter note.');return}
+   if(voiceDiscardOnStop){voiceDiscardOnStop=false;voiceChunks=[];voiceBytes=0;voiceDurationSeconds=0;return}
+   if(voiceTooLarge){voiceChunks=[];voiceBytes=0;voiceDurationSeconds=0;setVoiceStatus('Voice note exceeded 240 KB. Please record a shorter note.');return}
    const blob=new Blob(voiceChunks,{type:recorder?.mimeType||'audio/webm'});voiceChunks=[];
-   if(!blob.size){setVoiceStatus('No audio was captured. Please try again.');return}
-   voicePreviewBlob=blob;voicePreviewUrl=URL.createObjectURL(blob);$('voicePreview').src=voicePreviewUrl;
-   $('voiceDurationLabel').textContent=Math.min(MAX_VOICE_DURATION_SECONDS,Math.max(1,Math.round((Date.now()-voiceStartedAt)/1000)))+' seconds · encrypted before sending';
+   if(!blob.size){voiceDurationSeconds=0;setVoiceStatus('No audio was captured. Please try again.');return}
+   setVoiceStatus('Checking voice note duration…');
+   const actualDuration=await measureRecordedVoiceDuration(blob);
+   if(!Number.isFinite(actualDuration)||actualDuration<=0){voiceDurationSeconds=0;setVoiceStatus('Could not verify this recording length in your browser. Please try a shorter recording or another browser.');return}
+   if(actualDuration>MAX_VOICE_DURATION_SECONDS+0.75){voiceDurationSeconds=0;setVoiceStatus('This recording is longer than 30 seconds. It was not sent. Please record a shorter voice note.');return}
+   voiceDurationSeconds=actualDuration;voicePreviewBlob=blob;voicePreviewUrl=URL.createObjectURL(blob);$('voicePreview').src=voicePreviewUrl;
+   $('voiceDurationLabel').textContent=Math.ceil(actualDuration)+' seconds · encrypted before sending';
    $('voicePreviewPanel').classList.remove('hidden');setVoiceStatus('Listen to your voice note, then send or discard it.');
   };
   voiceRecorder.start(250);
   $('voiceRecord').classList.add('is-recording');$('voiceRecord').textContent='■';$('voiceRecord').setAttribute('aria-label','Stop recording');$('voiceRecord').title='Stop recording';
   setVoiceStatus('Recording… tap ■ to stop · max 30 seconds');
+  voiceHardStopTimer=setTimeout(()=>stopVoiceRecording(),MAX_VOICE_DURATION_SECONDS*1000+100);
   voiceTimer=setInterval(()=>{
    const elapsed=Math.floor((Date.now()-voiceStartedAt)/1000);
    setVoiceStatus('Recording · '+String(Math.min(elapsed,30)).padStart(2,'0')+'s / 30s · tap ■ to stop');
@@ -1094,7 +1132,7 @@ async function sendVoiceNote(){
  const button=$('sendVoiceNote');button.disabled=true;setVoiceStatus('Encrypting voice note…');
  try{
   const audio=bytesToBase64(new Uint8Array(await voicePreviewBlob.arrayBuffer()));
-  const voiceMessage={kind:'voice',name:$('displayName').value.trim(),mimeType:voicePreviewBlob.type||'audio/webm',durationSeconds:Math.min(30,Math.max(1,Math.round((Date.now()-voiceStartedAt)/1000))),audio};
+  const voiceMessage={kind:'voice',name:$('displayName').value.trim(),mimeType:voicePreviewBlob.type||'audio/webm',durationSeconds:Math.max(1,Math.round(voiceDurationSeconds)),audio};
   const payload=await encrypt(voiceMessage);
   if(payload.data.length>450000)throw new Error('This recording is too large to send. Please record a shorter note.');
   const localId=randomHex(16);
