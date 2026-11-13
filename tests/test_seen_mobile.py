@@ -14,8 +14,8 @@ class PresenceAndSeenTests(unittest.TestCase):
             app.init_db()
             with app.db() as conn:
                 conn.execute("INSERT INTO rooms VALUES(?,?,?)", (room, "verifier", 1.0))
-                conn.execute("INSERT INTO participants VALUES(?,?,?,?,?)", (room, alice, "Alice", 1.0, 1.0))
-                conn.execute("INSERT INTO participants VALUES(?,?,?,?,?)", (room, bob, "Bob", 1.0, 1.0))
+                conn.execute("INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen) VALUES(?,?,?,?,?)", (room, alice, "Alice", 1.0, 1.0))
+                conn.execute("INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen) VALUES(?,?,?,?,?)", (room, bob, "Bob", 1.0, 1.0))
             app.room_sockets[room] = {alice: object()}
             presence = {p["id"]: p["online"] for p in app._presence(room)}
             self.assertTrue(presence[alice])
