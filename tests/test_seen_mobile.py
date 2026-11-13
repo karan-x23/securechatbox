@@ -42,7 +42,7 @@ class MobileAndReadReceiptUiTests(unittest.TestCase):
         self.assertIn("value.includes('offline')?'offline'", self.html)
 
     def test_mobile_layout_uses_safe_areas_and_large_touch_targets(self):
-        self.assertIn("@media(max-width:640px)", self.html)
+        self.assertIn("@media(max-width:720px)", self.html)
         self.assertIn("100dvh", self.html)
         self.assertIn("env(safe-area-inset-bottom)", self.html)
         self.assertIn("min-height:49px", self.html)
