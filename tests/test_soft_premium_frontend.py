@@ -20,6 +20,19 @@ class SoftPremiumFrontendTests(unittest.TestCase):
         self.assertIn(".composer", self.html)
         self.assertIn("prefers-reduced-motion:reduce", self.html)
 
+    def test_invite_and_recovery_are_available_only_in_the_discreet_menu(self):
+        header=self.html.split("<header>",1)[1].split("</header>",1)[0]
+        self.assertIn('id="moreMenuToggle"', header)
+        menu=header.split('id="chatOptionsMenu"',1)[1]
+        self.assertIn('id="shareInvite"', menu)
+        self.assertIn('id="toggleRecovery"', menu)
+        self.assertIn('id="leave"', menu)
+        chat_tools=self.html.split('<div class="chat-tools">',1)[1].split('</div>',1)[0]
+        self.assertNotIn('id="shareInvite"', chat_tools)
+        self.assertNotIn('id="toggleRecovery"', chat_tools)
+        self.assertIn("function closeChatOptions()", self.html)
+        self.assertIn("aria-expanded", self.html)
+
     def test_existing_setup_and_chat_controls_are_preserved(self):
         for element_id in ("roomName","displayName","secret","create","connect","pairCodeInput","joinByPairCode","sendForm","emojiPicker","send"):
             self.assertIn(f'id="{element_id}"', self.html)

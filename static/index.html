@@ -556,9 +556,124 @@ button:focus-visible,input:focus-visible{
  .msg{animation:none}
 }
 
+
+/* Quiet, romantic conversation polish */
+header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-bottom-color:#f0e7ec}
+.headtools{position:relative;gap:8px}
+.headtools #moreMenuToggle{
+ width:43px;height:43px;min-height:43px;padding:0;border-radius:50%;
+ display:grid;place-items:center;background:#fbf3f7;color:#79536f;
+ border:1px solid #f0e3eb;font-size:1.55rem;font-weight:800;line-height:1;
+ letter-spacing:.04em;box-shadow:0 4px 13px #7f5a7210
+}
+.headtools #moreMenuToggle:hover{background:#f5e9f0;box-shadow:0 6px 16px #7f5a7218}
+.chat-options-menu{
+ position:absolute;right:0;top:calc(100% + 11px);z-index:40;
+ width:min(292px,calc(100vw - 28px));padding:8px;
+ border:1px solid #eee0e8;border-radius:19px;
+ background:rgba(255,252,254,.97);backdrop-filter:blur(18px);
+ box-shadow:0 18px 48px #40273c22;
+ transform-origin:top right;animation:menu-in .16s ease-out
+}
+.chat-options-menu.hidden{display:none!important}
+.headtools .chat-menu-item{
+ width:100%;min-height:59px;padding:9px 11px;display:flex;align-items:center;gap:12px;
+ text-align:left;border-radius:13px;background:transparent;color:#463647;
+ box-shadow:none!important;white-space:normal
+}
+.headtools .chat-menu-item:hover{background:#f8eef3;filter:none;transform:none}
+.chat-menu-icon{
+ width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:12px;
+ background:#f5eaf1;color:#94677f;font-size:1.05rem;font-weight:700
+}
+.chat-menu-copy{display:grid;gap:3px;min-width:0}
+.chat-menu-copy strong{font-size:.82rem;font-weight:760;color:#493748}
+.chat-menu-copy small{font-size:.7rem;line-height:1.35;font-weight:500;color:#968592}
+.chat-menu-divider{height:1px;margin:5px 7px;background:#f0e6ec}
+.headtools .chat-menu-leave .chat-menu-icon{background:#fbefef;color:#b16d79}
+.headtools .chat-menu-leave .chat-menu-copy strong{color:#95606b}
+.headtools #leave.chat-menu-item{background:transparent;color:#95606b;border:0}
+.chat-tools{
+ min-height:43px;padding:8px 20px;justify-content:flex-end;
+ background:linear-gradient(90deg,#fff9fb,#fbf7fb);border-bottom:1px solid #f3eaf0
+}
+.chat-tools:before{
+ content:"a little place, just for the two of you  ♡";
+ margin-right:auto;color:#a08799;font-size:.72rem;font-weight:600;letter-spacing:.015em
+}
+.chat-tools .sound{color:#8a7887;font-size:.73rem}
+.chat-tools .sound input{accent-color:#9a6c87}
+.chatmeta{
+ min-height:38px;padding:10px 16px;background:#fffafd;color:#927f8e;
+ border-bottom-color:#f4eaf0;font-size:.73rem;font-weight:600;letter-spacing:.015em
+}
+.messages{
+ padding:28px clamp(16px,6vw,78px) 22px;gap:14px;
+ background:
+  radial-gradient(ellipse at 13% 8%,rgba(249,226,236,.7),transparent 34%),
+  radial-gradient(ellipse at 88% 90%,rgba(232,225,245,.7),transparent 38%),
+  linear-gradient(145deg,#fcf8fb 0%,#faf7fb 52%,#fdf8f8 100%);
+}
+.msg{
+ max-width:min(76%,600px);padding:12px 16px;background:rgba(255,255,255,.94);
+ border:1px solid #f0e6ed;border-radius:19px 19px 19px 6px;
+ box-shadow:0 7px 22px #573b5010
+}
+.msg.mine{
+ background:linear-gradient(145deg,#a87896 0%,#875f81 100%);
+ border-color:transparent;border-radius:19px 19px 6px 19px;
+ box-shadow:0 8px 20px #8a627c2b
+}
+.msgbody{font-size:.96rem;line-height:1.58;letter-spacing:.002em}
+.sender{color:#966d86;font-size:.71rem;font-weight:750;letter-spacing:.015em}
+.msgfoot{font-size:.67rem;color:#a393a0}
+.msg.mine .msgfoot{color:#f4e6ef}
+.tick.read{color:#c6eff0}
+.typing{background:#faf7fb;color:#967f91}
+.composer{
+ gap:10px;padding:13px 18px calc(13px + env(safe-area-inset-bottom));
+ background:rgba(255,255,255,.96);border-top:1px solid #f0e7ed;
+ box-shadow:0 -8px 24px #59394a08
+}
+.composer input{
+ min-height:52px;border-radius:999px;padding:13px 19px;
+ background:#fbf6f9;border:1px solid #f0e5ec;color:#473747
+}
+.composer input::placeholder{color:#b09eab}
+.composer input:focus{background:#fff;border-color:#c59bb3;box-shadow:0 0 0 4px #b27d9b1b}
+.composer button{
+ width:52px;height:52px;min-height:52px;border-radius:50%;
+ background:linear-gradient(145deg,#b17d9b,#8b6285);
+ box-shadow:0 7px 17px #9a6d8c38
+}
+.empty-state .empty-icon{background:linear-gradient(145deg,#f8eaf1,#eee8f7);color:#a27591}
+@keyframes menu-in{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:720px){
+ header{z-index:8}
+ .headtools #moreMenuToggle{width:40px;height:40px;min-height:40px}
+ .chat-options-menu{top:calc(100% + 9px);right:-2px}
+ .chat-tools{min-height:40px;padding:7px 13px}
+ .chat-tools:before{font-size:.66rem;letter-spacing:0}
+ .messages{padding:18px 13px 13px;gap:11px}
+ .msg{max-width:87%;padding:11px 14px}
+ .composer{gap:8px;padding:9px 11px calc(9px + env(safe-area-inset-bottom))}
+ .composer input{min-height:49px;padding:12px 16px}
+ .composer button{width:49px;height:49px;min-height:49px}
+}
+@media(max-width:360px){.chat-tools:before{font-size:.6rem}.chat-options-menu{width:min(270px,calc(100vw - 20px))}}
+@media(prefers-reduced-motion:reduce){.chat-options-menu{animation:none}}
+
 </style></head>
 <body><div class="shell">
-<header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="shareInvite" class="secondary disconnect hidden" type="button">↗ Invite</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
+<header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools">
+ <button id="moreMenuToggle" class="more-menu-toggle hidden" type="button" aria-label="Open chat options" aria-expanded="false" aria-controls="chatOptionsMenu">···</button>
+ <div id="chatOptionsMenu" class="chat-options-menu hidden" aria-label="Chat options">
+  <button id="shareInvite" class="chat-menu-item hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">↗</span><span class="chat-menu-copy"><strong>Invite your person</strong><small>Share a private link or code</small></span></button>
+  <button id="toggleRecovery" class="chat-menu-item hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">♡</span><span class="chat-menu-copy"><strong>Recovery code</strong><small>Keep a private backup</small></span></button>
+  <div class="chat-menu-divider"></div>
+  <button id="leave" class="chat-menu-item chat-menu-leave hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">↪</span><span class="chat-menu-copy"><strong>Leave chat</strong><small>Disconnect this device</small></span></button>
+ </div>
+</div></header>
 <main>
 <section id="setup" class="setup">
  <div class="welcome">
@@ -598,7 +713,6 @@ button:focus-visible,input:focus-visible{
 <section id="chatArea" class="chatbg hidden">
  <div class="chatmeta" id="roomMeta">Connecting securely…</div>
  <div class="chat-tools">
-  <button id="toggleRecovery" class="tertiary" type="button">My recovery code</button>
   <label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label>
  </div>
  <div id="invitePanel" class="invite-panel hidden">
@@ -725,8 +839,8 @@ function configureInviteMode(){
   hint.classList.add('hidden');
  }
 }
-function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('message').placeholder='Write a message…' }
-function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('shareInvite').classList.add('hidden');$('invitePanel').classList.add('hidden') }
+function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('moreMenuToggle').classList.remove('hidden');$('message').placeholder='Write a message…' }
+function showSetup(){ closeChatOptions();$('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('moreMenuToggle').classList.add('hidden');$('shareInvite').classList.add('hidden');$('toggleRecovery').classList.add('hidden');$('invitePanel').classList.add('hidden');$('recoveryPanel').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
 function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
 function addBubble(id,senderId,obj,createdAt,status='sent'){
@@ -740,7 +854,7 @@ function addBubble(id,senderId,obj,createdAt,status='sent'){
 }
 async function displayPacket(item){try{const obj=await decrypt(item.payload);const status=item.read?'read':item.delivered?'delivered':'sent';const oldId=item.sender_id===participantId?item.client_message_id:null;const pending=oldId?messageNodes.get(oldId):null;if(pending&&!messageNodes.has(item.message_id)){rendered.delete(oldId);rendered.add(item.message_id);pending.dataset.messageId=item.message_id;messageNodes.delete(oldId);messageNodes.set(item.message_id,pending);messageStates.delete(oldId);messageStates.set(item.message_id,status);const foot=pending.querySelector('.msgfoot span');if(foot)foot.textContent=timeLabel(item.created_at);updateTicks(item.message_id);return}addBubble(item.message_id,item.sender_id,obj,item.created_at,status)}catch(e){$('roomMeta').textContent='A saved message could not be decrypted. Check the shared secret phrase.'}}
 function setEmptyState(title,detail){const empty=$('emptyState');if(!empty||rendered.size)return;empty.replaceChildren();const icon=document.createElement('div');icon.className='empty-icon';icon.textContent='♡';const heading=document.createElement('strong');heading.textContent=title;const note=document.createElement('span');note.textContent=detail;empty.append(icon,heading,note)}
-function participantsStatus(list){const other=(list||[]).find(p=>p.id!==participantId);if(!other){setStatus('Room connected · waiting for invite');$('roomMeta').textContent='Your room is online. The other person has not joined this link yet.';setEmptyState('Your private room is ready','Send the invite link above. The other person must open that exact link, tap “Join this private chat”, and enter the same shared secret phrase.');return}setStatus((other.name||'Participant')+(other.online?' · Online':' · Offline'));$('roomMeta').textContent=other.online?'Both people are connected · private chat is live':'The other person is offline · messages will sync when they return';setEmptyState(other.online?'You are both connected':'Waiting for the other person to come back',other.online?'Your private conversation is ready. Say hello.':'Messages you send now will be available when they reconnect.')}
+function participantsStatus(list){const other=(list||[]).find(p=>p.id!==participantId);if(!other){setStatus('Room connected · waiting for invite');$('roomMeta').textContent='Your room is online. The other person has not joined this link yet.';setEmptyState('Your private room is ready','Open the ⋯ menu and choose “Invite your person” to share a private link or pairing code.');return}setStatus((other.name||'Participant')+(other.online?' · Online':' · Offline'));$('roomMeta').textContent=other.online?'Both people are connected · private chat is live':'The other person is offline · messages will sync when they return';setEmptyState(other.online?'You are both connected':'Waiting for the other person to come back',other.online?'Your private conversation is ready. Say hello.':'Messages you send now will be available when they reconnect.')}
 function sendReceipt(type,id){if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type,message_id:id}));if(type==='read')readSent.add(id)}}
 function chatIsActive(){return document.visibilityState==='visible'&&(typeof document.hasFocus!=='function'||document.hasFocus())&&!$('chatArea').classList.contains('hidden')&&ws&&ws.readyState===WebSocket.OPEN}
 function markVisibleMessagesRead(){if(!chatIsActive())return;const viewport=$('messages').getBoundingClientRect();for(const [id,node] of messageNodes){if(node.classList.contains('mine')||readSent.has(id))continue;const rect=node.getBoundingClientRect();const visibleHeight=Math.max(0,Math.min(rect.bottom,viewport.bottom)-Math.max(rect.top,viewport.top));const visibleWidth=Math.max(0,Math.min(rect.right,viewport.right)-Math.max(rect.left,viewport.left));const denominator=Math.max(1,Math.min(rect.height,viewport.height));if(visibleHeight/denominator>=0.6&&visibleWidth>0)sendReceipt('read',id)}}
@@ -751,7 +865,7 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
  socket.onmessage=async ev=>{if(ws!==socket)return;let packet;try{packet=JSON.parse(ev.data)}catch{return}
   if(packet.type==='ready'){
    connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);
-   if(action==='create'||action==='join'){$('shareInvite').classList.remove('hidden')}
+   if(action==='create'||action==='join'){$('shareInvite').classList.remove('hidden');$('toggleRecovery').classList.remove('hidden')}
    activePairCode=packet.pair_code||localStorage.getItem('securechat:pair:'+roomId)||'';
    if(activePairCode){localStorage.setItem('securechat:pair:'+roomId,activePairCode);$('pairCodeDisplay').textContent=formatPairCode(activePairCode)}
    const savedRecovery=localStorage.getItem('securechat:recovery:'+roomId)||'';
@@ -860,12 +974,16 @@ $('connect').onclick=()=>{prepareSharedPhraseMode('join');start(false)};
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
 async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;$('roomName').value='';localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
-$('toggleRecovery').onclick=()=>{$('recoveryPanel').classList.toggle('hidden');if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
+function closeChatOptions(){$('chatOptionsMenu').classList.add('hidden');$('moreMenuToggle').setAttribute('aria-expanded','false')}
+$('moreMenuToggle').onclick=()=>{const opening=$('chatOptionsMenu').classList.contains('hidden');$('chatOptionsMenu').classList.toggle('hidden',!opening);$('moreMenuToggle').setAttribute('aria-expanded',String(opening))};
+document.addEventListener('click',e=>{if(!e.target.closest('.headtools'))closeChatOptions()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('chatOptionsMenu').classList.contains('hidden')){closeChatOptions();$('moreMenuToggle').focus()}});
+$('toggleRecovery').onclick=()=>{closeChatOptions();$('recoveryPanel').classList.toggle('hidden');if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
 $('closeRecovery').onclick=()=>$('recoveryPanel').classList.add('hidden');
 $('revealRecovery').onclick=()=>{const code=$('recoveryCode');const show=code.classList.contains('hidden');code.classList.toggle('hidden',!show);$('revealRecovery').textContent=show?'Hide code':'Show code'};
 $('copyRecovery').onclick=async()=>{const code=localStorage.getItem('securechat:recovery:'+roomId)||'';if(!code){$('recoveryCopyStatus').textContent='No recovery code is available on this device.';return}try{await navigator.clipboard.writeText(code);$('recoveryCopyStatus').textContent='Copied. Store it somewhere private.'}catch(e){$('recoveryCode').classList.remove('hidden');$('revealRecovery').textContent='Hide code';$('recoveryCopyStatus').textContent='Clipboard unavailable. Select and copy the code above.'}};
 
-$('shareInvite').onclick=()=>{$('invitePanel').classList.toggle('hidden');if(!$('invitePanel').classList.contains('hidden'))$('pairCodeDisplay').scrollIntoView({behavior:'smooth',block:'nearest'})};
+$('shareInvite').onclick=()=>{closeChatOptions();$('invitePanel').classList.toggle('hidden');if(!$('invitePanel').classList.contains('hidden'))$('pairCodeDisplay').scrollIntoView({behavior:'smooth',block:'nearest'})};
 $('closeInvitePanel').onclick=()=>$('invitePanel').classList.add('hidden');
 $('copyPairCode').onclick=async()=>{if(!activePairCode){$('roomMeta').textContent='Pairing code is not available yet.';return}try{await navigator.clipboard.writeText(formatPairCode(activePairCode));$('copyPairCode').textContent='Copied';setTimeout(()=>$('copyPairCode').textContent='Copy code',1500)}catch(e){$('roomMeta').textContent='Select the pairing code to copy it.'}};
 $('sharePairCode').onclick=async()=>{if(!activePairCode)return;const code=formatPairCode(activePairCode);const text='Join my SecureChatBox private chat. Pairing code: '+code+'. Open SecureChatBox, choose “Join without a link”, enter this code and use our shared secret phrase.';try{if(navigator.share){await navigator.share({title:'SecureChatBox pairing code',text})}else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text);$('roomMeta').textContent='Pairing instructions copied.'}else{window.prompt('Copy these pairing instructions',text)}}catch(e){if(e&&e.name!=='AbortError')$('roomMeta').textContent='Could not open the share menu.'}};
@@ -920,7 +1038,7 @@ window.addEventListener('pagehide',pauseForBackground);
 window.addEventListener('pageshow',()=>{resumeFromBackground();scheduleReadCheck()});
 window.addEventListener('focus',()=>{resumeFromBackground();scheduleReadCheck()});
 $('messages').addEventListener('scroll',scheduleReadCheck,{passive:true});
-$('leave').onclick=()=>{manualLeave=true;backgroundPaused=false;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;currentAuthToken=null;currentRecoveryCode=null;connected=false;$('shareInvite').classList.add('hidden');showSetup();setSetupStatus('Disconnected. Your saved chat remains available when you join again.');setStatus('Not connected')};
+$('leave').onclick=()=>{closeChatOptions();manualLeave=true;backgroundPaused=false;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;currentAuthToken=null;currentRecoveryCode=null;connected=false;$('shareInvite').classList.add('hidden');showSetup();setSetupStatus('Disconnected. Your saved chat remains available when you join again.');setStatus('Not connected')};
 if(!location.hash&&validRoom(localStorage.getItem('secureChatRoom')))location.hash=localStorage.getItem('secureChatRoom');
 window.addEventListener('hashchange',configureInviteMode);configureInviteMode();
 </script></body></html>
