@@ -23,8 +23,8 @@ class StorageTests(unittest.TestCase):
         room, alice, bob = "a" * 32, "b" * 32, "c" * 32
         with app.db() as conn:
             conn.execute("INSERT INTO rooms VALUES(?,?,?)", (room, "verifier", 1.0))
-            conn.execute("INSERT INTO participants VALUES(?,?,?,?,?)", (room, alice, "Alice", 1.0, 1.0))
-            conn.execute("INSERT INTO participants VALUES(?,?,?,?,?)", (room, bob, "Bob", 1.0, 1.0))
+            conn.execute("INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen) VALUES(?,?,?,?,?)", (room, alice, "Alice", 1.0, 1.0))
+            conn.execute("INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen) VALUES(?,?,?,?,?)", (room, bob, "Bob", 1.0, 1.0))
             conn.execute("INSERT INTO messages(message_id,room_id,sender_id,ciphertext_json,client_message_id,created_at) VALUES(?,?,?,?,?,?)", ("m1", room, alice, json.dumps({"iv":"iv1","data":"cipher1"}), "1"*16, 2.0))
             conn.execute("INSERT INTO messages(message_id,room_id,sender_id,ciphertext_json,client_message_id,created_at) VALUES(?,?,?,?,?,?)", ("m2", room, bob, json.dumps({"iv":"iv2","data":"cipher2"}), "2"*16, 3.0))
             conn.execute("INSERT INTO receipts VALUES(?,?,?,?)", ("m1", bob, 4.0, 5.0))

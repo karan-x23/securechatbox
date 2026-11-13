@@ -14,8 +14,8 @@ class PresenceAndSeenTests(unittest.TestCase):
             app.init_db()
             with app.db() as conn:
                 conn.execute("INSERT INTO rooms VALUES(?,?,?)", (room, "verifier", 1.0))
-                conn.execute("INSERT INTO participants VALUES(?,?,?,?,?)", (room, alice, "Alice", 1.0, 1.0))
-                conn.execute("INSERT INTO participants VALUES(?,?,?,?,?)", (room, bob, "Bob", 1.0, 1.0))
+                conn.execute("INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen) VALUES(?,?,?,?,?)", (room, alice, "Alice", 1.0, 1.0))
+                conn.execute("INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen) VALUES(?,?,?,?,?)", (room, bob, "Bob", 1.0, 1.0))
             app.room_sockets[room] = {alice: object()}
             presence = {p["id"]: p["online"] for p in app._presence(room)}
             self.assertTrue(presence[alice])
@@ -42,7 +42,7 @@ class MobileAndReadReceiptUiTests(unittest.TestCase):
         self.assertIn("value.includes('offline')?'offline'", self.html)
 
     def test_mobile_layout_uses_safe_areas_and_large_touch_targets(self):
-        self.assertIn("@media(max-width:640px)", self.html)
+        self.assertIn("@media(max-width:720px)", self.html)
         self.assertIn("100dvh", self.html)
         self.assertIn("env(safe-area-inset-bottom)", self.html)
         self.assertIn("min-height:49px", self.html)
