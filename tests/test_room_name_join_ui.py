@@ -22,9 +22,11 @@ class RoomNameJoinUiTests(unittest.TestCase):
 
     def test_old_saved_random_room_id_is_not_used_as_join_fallback(self):
         self.assertNotIn("location.hash.slice(1)||localStorage.getItem('secureChatRoom')", self.html)
+        self.assertIn("localStorage.setItem(participantStorageKey(),participantId)", self.html)
 
     def test_pair_code_and_invite_flows_are_preserved(self):
-        self.assertIn("await start(false,true)", self.html)
+        self.assertIn("await start(false)", self.html)
+        self.assertIn("roomName').value='';", self.html)
         self.assertIn("validRoom(location.hash.slice(1))", self.html)
         self.assertIn("fetch('/api/rooms/resolve'", self.html)
 
