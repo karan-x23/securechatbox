@@ -23,7 +23,7 @@ class ClearChatStateUiTests(unittest.TestCase):
         self.assertIn('id="sendForm"', self.html)
         self.assertIn('id="toggleRecovery"', self.html)
         self.assertIn('id="copyRecovery"', self.html)
-        self.assertIn('id="copy"', self.html)
+        self.assertIn('id="shareInvite"', self.html)
         self.assertIn("@media(max-width:720px)", self.html)
 
 

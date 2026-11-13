@@ -435,6 +435,25 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
                 await _broadcast(room_id, {"type": "receipt", "message_id": message_id, "status": kind}, exclude=participant_id)
             elif kind == "typing":
                 await _broadcast(room_id, {"type": "typing", "participant_id": participant_id, "active": bool(packet.get("active"))}, exclude=participant_id)
+            elif kind == "background":
+                # A hidden app is considered offline immediately, without waiting for
+                # the heartbeat timeout that is needed for suspended/unresponsive tabs.
+                async with _room_lock(room_id):
+                    peers = room_sockets.get(room_id, {})
+                    if peers.get(participant_id) is websocket:
+                        peers.pop(participant_id, None)
+                    if not peers:
+                        room_sockets.pop(room_id, None)
+                await _broadcast(
+                    room_id,
+                    {"type": "presence", "participants": _presence(room_id)},
+                    exclude=participant_id,
+                )
+                try:
+                    await websocket.close(code=4002, reason="Participant is in the background")
+                except Exception:
+                    pass
+                break
     except WebSocketDisconnect:
         pass
     except Exception:

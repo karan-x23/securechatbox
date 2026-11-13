@@ -14,7 +14,7 @@ class ProfessionalInviteFlowTests(unittest.TestCase):
         self.assertIn("Do not create a new room", self.html)
 
     def test_invite_share_explains_same_link_and_secret_phrase(self):
-        self.assertIn("Send this exact link", self.html)
+        self.assertIn("Join my private chat using the same shared secret phrase.", self.html)
         self.assertIn("same shared secret phrase", self.html)
         self.assertIn("navigator.share", self.html)
 
@@ -30,7 +30,7 @@ class ProfessionalInviteFlowTests(unittest.TestCase):
 
     def test_core_chat_controls_and_mobile_layout_remain(self):
         self.assertIn('id="sendForm"', self.html)
-        self.assertIn('id="copy"', self.html)
+        self.assertIn('id="shareInvite"', self.html)
         self.assertIn('id="toggleRecovery"', self.html)
         self.assertIn("@media(max-width:720px)", self.html)
 
