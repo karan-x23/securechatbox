@@ -702,6 +702,53 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
  .messages:after{left:13px;bottom:8px;font-size:1.5rem}
 }
 
+
+/* Encrypted voice-note controls */
+.voice-record{
+ width:43px;height:46px;min-height:46px;flex:none;padding:0;border-radius:50%;
+ background:#f7edf3;color:#956982;border:1px solid #efdfE8;
+ box-shadow:none;font-size:1.15rem;
+}
+.voice-record:hover{background:#f0e2eb;box-shadow:0 5px 13px #9a6d8c18}
+.voice-record.is-recording{
+ background:#a64f72;color:#fff;border-color:#a64f72;
+ animation:voice-pulse 1.2s ease-in-out infinite;
+}
+.voice-status{min-height:0;padding:0 16px;color:#966d86;font-size:.72rem;line-height:1.4}
+.voice-status:not(:empty){padding:6px 16px 7px}
+.voice-preview{
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+ padding:10px 16px;background:linear-gradient(100deg,#fff8fb,#faf6fb);
+ border-top:1px solid #f0e4ec;
+}
+.voice-preview.hidden{display:none}
+.voice-preview-copy{display:grid;gap:2px;min-width:120px;color:#634b61}
+.voice-preview-copy strong{font-size:.76rem}
+.voice-preview-copy span{font-size:.68rem;color:#9b8797}
+.voice-preview audio{width:min(100%,250px);height:38px}
+.voice-preview-actions{display:flex;gap:7px;margin-left:auto}
+.voice-preview-actions button{min-height:36px;padding:7px 11px;font-size:.73rem}
+.voice-note{display:flex;align-items:center;gap:9px;min-width:0}
+.voice-note-icon{font-size:1.1rem;color:#a47791}
+.voice-note audio{display:block;width:min(260px,58vw);height:38px;max-width:100%}
+@keyframes voice-pulse{50%{box-shadow:0 0 0 5px #a64f7224}}
+@media(max-width:720px){
+ .voice-record{width:39px;height:46px;min-height:46px}
+ .voice-preview{padding:9px 11px;gap:8px}
+ .voice-preview-copy{min-width:105px}
+ .voice-preview audio{flex:1;min-width:160px}
+ .voice-preview-actions{width:100%;margin-left:0}
+ .voice-preview-actions button{flex:1;min-height:40px}
+ .voice-status:not(:empty){padding:5px 12px 6px}
+ .voice-note audio{width:min(240px,62vw)}
+}
+@media(max-width:360px){
+ .voice-record{width:35px}
+ .emoji-toggle{width:34px!important}
+ .voice-note audio{width:58vw}
+}
+@media(prefers-reduced-motion:reduce){.voice-record.is-recording{animation:none}}
+
 </style></head>
 <body><div class="shell">
 <header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools">
@@ -781,7 +828,14 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
  <div class="emoji-grid" id="emojiGrid" role="group" aria-label="Emoji choices"></div>
  <div class="emoji-empty hidden" id="emojiEmpty">No emoji found. Try another search.</div>
 </div>
+<div id="voiceStatus" class="voice-status" role="status" aria-live="polite"></div>
+<div id="voicePreviewPanel" class="voice-preview hidden">
+ <div class="voice-preview-copy"><strong>Voice note ready</strong><span id="voiceDurationLabel">Listen before sending</span></div>
+ <audio id="voicePreview" controls preload="metadata"></audio>
+ <div class="voice-preview-actions"><button type="button" id="sendVoiceNote">Send voice</button><button type="button" id="discardVoiceNote" class="secondary">Discard</button></div>
+</div>
 <form id="sendForm" class="composer">
+ <button type="button" id="voiceRecord" class="voice-record" aria-label="Record voice note" title="Record voice note">🎙</button>
  <button type="button" id="emojiToggle" class="emoji-toggle" aria-label="Open emoji picker" aria-expanded="false" title="Emojis">☺</button>
  <input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off" aria-label="Message">
  <button id="send" aria-label="Send" disabled>➤</button>
@@ -790,6 +844,9 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 </main></div><script>
 const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false,activePairCode=null;
 const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map(),readSent=new Set();
+const MAX_VOICE_DURATION_SECONDS=30,MAX_VOICE_BYTES=240*1024;
+let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceBytes=0,voiceStartedAt=0,voiceTimer=null,voicePreviewBlob=null,voicePreviewUrl=null,voiceDiscardOnStop=false,voiceTooLarge=false;
+const voiceObjectUrls=[];
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64bytes(s){let v=s.replace(/-/g,'+').replace(/_/g,'/');v+='='.repeat((4-v.length%4)%4);return Uint8Array.from(atob(v),c=>c.charCodeAt(0))}
 function randomHex(n=16){return Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('')}
@@ -973,6 +1030,80 @@ function configureInviteMode(){
   hint.classList.add('hidden');
  }
 }
+
+function setVoiceStatus(message){$('voiceStatus').textContent=message||''}
+function releaseVoiceStream(){if(voiceStream){for(const track of voiceStream.getTracks())track.stop();voiceStream=null}}
+function resetVoiceRecordButton(){$('voiceRecord').classList.remove('is-recording');$('voiceRecord').textContent='🎙';$('voiceRecord').setAttribute('aria-label','Record voice note');$('voiceRecord').title='Record voice note'}
+function clearVoiceDraft(){
+ if(voiceRecorder&&voiceRecorder.state!=='inactive'){voiceDiscardOnStop=true;try{voiceRecorder.stop()}catch(error){}}
+ if(voicePreviewUrl){URL.revokeObjectURL(voicePreviewUrl);voicePreviewUrl=null}
+ voicePreviewBlob=null;$('voicePreview').removeAttribute('src');$('voicePreview').load();$('voicePreviewPanel').classList.add('hidden');
+}
+function stopVoiceRecording(discard=false){
+ if(discard)voiceDiscardOnStop=true;
+ if(voiceTimer){clearInterval(voiceTimer);voiceTimer=null}
+ if(voiceRecorder&&voiceRecorder.state==='recording'){try{voiceRecorder.stop()}catch(error){releaseVoiceStream();voiceRecorder=null;resetVoiceRecordButton()}}
+ else{releaseVoiceStream();resetVoiceRecordButton()}
+}
+async function startVoiceRecording(){
+ if(!ws||ws.readyState!==WebSocket.OPEN){setVoiceStatus('Connect to your private chat before recording.');return}
+ if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){setVoiceStatus('Voice recording is not supported in this browser. Try an updated browser over HTTPS.');return}
+ clearVoiceDraft();setVoiceStatus('Requesting microphone permission…');
+ try{
+  voiceStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  const supported=['audio/webm;codecs=opus','audio/mp4','audio/ogg;codecs=opus','audio/webm'].find(type=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(type));
+  voiceRecorder=supported?new MediaRecorder(voiceStream,{mimeType:supported,audioBitsPerSecond:32000}):new MediaRecorder(voiceStream,{audioBitsPerSecond:32000});
+  voiceChunks=[];voiceBytes=0;voiceTooLarge=false;voiceDiscardOnStop=false;voiceStartedAt=Date.now();
+  voiceRecorder.ondataavailable=event=>{
+   if(!event.data||!event.data.size)return;
+   voiceBytes+=event.data.size;
+   if(voiceBytes>MAX_VOICE_BYTES){voiceTooLarge=true;stopVoiceRecording();return}
+   voiceChunks.push(event.data);
+  };
+  voiceRecorder.onerror=()=>{voiceTooLarge=true;stopVoiceRecording(true);setVoiceStatus('Recording failed. Please try again.')};
+  voiceRecorder.onstop=()=>{
+   const recorder=voiceRecorder;voiceRecorder=null;releaseVoiceStream();
+   if(voiceTimer){clearInterval(voiceTimer);voiceTimer=null}
+   resetVoiceRecordButton();
+   if(voiceDiscardOnStop){voiceDiscardOnStop=false;voiceChunks=[];voiceBytes=0;return}
+   if(voiceTooLarge){voiceChunks=[];voiceBytes=0;setVoiceStatus('Voice note exceeded 240 KB. Please record a shorter note.');return}
+   const blob=new Blob(voiceChunks,{type:recorder?.mimeType||'audio/webm'});voiceChunks=[];
+   if(!blob.size){setVoiceStatus('No audio was captured. Please try again.');return}
+   voicePreviewBlob=blob;voicePreviewUrl=URL.createObjectURL(blob);$('voicePreview').src=voicePreviewUrl;
+   $('voiceDurationLabel').textContent=Math.min(MAX_VOICE_DURATION_SECONDS,Math.max(1,Math.round((Date.now()-voiceStartedAt)/1000)))+' seconds · encrypted before sending';
+   $('voicePreviewPanel').classList.remove('hidden');setVoiceStatus('Listen to your voice note, then send or discard it.');
+  };
+  voiceRecorder.start(250);
+  $('voiceRecord').classList.add('is-recording');$('voiceRecord').textContent='■';$('voiceRecord').setAttribute('aria-label','Stop recording');$('voiceRecord').title='Stop recording';
+  setVoiceStatus('Recording… tap ■ to stop · max 30 seconds');
+  voiceTimer=setInterval(()=>{
+   const elapsed=Math.floor((Date.now()-voiceStartedAt)/1000);
+   setVoiceStatus('Recording · '+String(Math.min(elapsed,30)).padStart(2,'0')+'s / 30s · tap ■ to stop');
+   if(elapsed>=MAX_VOICE_DURATION_SECONDS)stopVoiceRecording();
+  },250);
+ }catch(error){releaseVoiceStream();voiceRecorder=null;resetVoiceRecordButton();setVoiceStatus(error?.name==='NotAllowedError'?'Microphone permission was denied. Allow microphone access and try again.':'Could not start recording. Check microphone access and try again.')}
+}
+function bytesToBase64(bytes){
+ let binary='';const chunkSize=0x8000;
+ for(let offset=0;offset<bytes.length;offset+=chunkSize)binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+chunkSize,bytes.length)));
+ return btoa(binary);
+}
+async function sendVoiceNote(){
+ if(!voicePreviewBlob)return;
+ if(!ws||ws.readyState!==WebSocket.OPEN){setVoiceStatus('Chat disconnected. Reconnect before sending this voice note.');return}
+ const button=$('sendVoiceNote');button.disabled=true;setVoiceStatus('Encrypting voice note…');
+ try{
+  const audio=bytesToBase64(new Uint8Array(await voicePreviewBlob.arrayBuffer()));
+  const voiceMessage={kind:'voice',name:$('displayName').value.trim(),mimeType:voicePreviewBlob.type||'audio/webm',durationSeconds:Math.min(30,Math.max(1,Math.round((Date.now()-voiceStartedAt)/1000))),audio};
+  const payload=await encrypt(voiceMessage);
+  if(payload.data.length>450000)throw new Error('This recording is too large to send. Please record a shorter note.');
+  const localId=randomHex(16);
+  ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));
+  addBubble(localId,participantId,voiceMessage,Date.now()/1000,'sent');
+  clearVoiceDraft();setVoiceStatus('');
+ }catch(error){setVoiceStatus(error.message||'Voice note could not be sent. Please try again.')}
+ finally{button.disabled=false}
+}
 function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('moreMenuToggle').classList.remove('hidden');$('message').placeholder='Write a message…' }
 function showSetup(){ closeChatOptions();$('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('moreMenuToggle').classList.add('hidden');$('shareInvite').classList.add('hidden');$('toggleRecovery').classList.add('hidden');$('invitePanel').classList.add('hidden');$('recoveryPanel').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
@@ -980,7 +1111,15 @@ function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const s
 function addBubble(id,senderId,obj,createdAt,status='sent'){
  if(rendered.has(id))return;rendered.add(id);const empty=$('emptyState');if(empty)empty.remove();const mine=senderId===participantId;const box=document.createElement('div');box.className='msg'+(mine?' mine':'');box.dataset.messageId=id;
  if(!mine){const sender=document.createElement('div');sender.className='sender';sender.textContent=obj.name||'Other participant';box.append(sender)}
- const body=document.createElement('div');body.className='msgbody';body.textContent=obj.text||'';box.append(body);
+ const body=document.createElement('div');body.className='msgbody';
+ if(obj.kind==='voice'&&typeof obj.audio==='string'){
+  const voice=document.createElement('div');voice.className='voice-note';
+  const icon=document.createElement('span');icon.className='voice-note-icon';icon.textContent='🎙';icon.setAttribute('aria-hidden','true');
+  const audio=document.createElement('audio');audio.controls=true;audio.preload='metadata';audio.setAttribute('aria-label','Voice message');
+  try{const bytes=Uint8Array.from(atob(obj.audio),ch=>ch.charCodeAt(0));const blob=new Blob([bytes],{type:obj.mimeType||'audio/webm'});const url=URL.createObjectURL(blob);voiceObjectUrls.push(url);audio.src=url;voice.append(icon,audio)}catch(error){voice.textContent='This voice note could not be played on this browser.'}
+  body.append(voice);
+ }else{body.textContent=obj.text||''}
+ box.append(body);
  const foot=document.createElement('div');foot.className='msgfoot';const tm=document.createElement('span');tm.textContent=timeLabel(createdAt||Date.now()/1000);foot.append(tm);
  if(mine){const tick=document.createElement('span');tick.className='tick';tick.textContent='✓';foot.append(tick)}box.append(foot);$('messages').append(box);$('messages').scrollTop=$('messages').scrollHeight;
  messageNodes.set(id,box);messageStates.set(id,status);updateTicks(id);
@@ -1149,9 +1288,14 @@ $('emojiCategories').addEventListener('click',e=>{const tab=e.target.closest('[d
 $('emojiPicker').addEventListener('click',e=>e.stopPropagation());
 document.addEventListener('click',e=>{if(!$('emojiPicker').classList.contains('hidden')&&!$('emojiPicker').contains(e.target)&&e.target!==$('emojiToggle'))setEmojiPicker(false)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('emojiPicker').classList.contains('hidden')){setEmojiPicker(false);$('emojiToggle').focus()}});
+$('voiceRecord').onclick=()=>{if(voiceRecorder&&voiceRecorder.state==='recording')stopVoiceRecording();else startVoiceRecording()};
+$('sendVoiceNote').onclick=sendVoiceNote;
+$('discardVoiceNote').onclick=()=>{clearVoiceDraft();setVoiceStatus('Voice note discarded.')};
+window.addEventListener('beforeunload',()=>{releaseVoiceStream();for(const url of voiceObjectUrls)URL.revokeObjectURL(url);if(voicePreviewUrl)URL.revokeObjectURL(voicePreviewUrl)});
 $('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';setEmojiPicker(false);}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
 $('message').addEventListener('input',()=>{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type:'typing',active:true}));clearTimeout(typingTimer);typingTimer=setTimeout(()=>ws&&ws.readyState===WebSocket.OPEN&&ws.send(JSON.stringify({type:'typing',active:false})),1200)}});
 function pauseForBackground(){
+ if(voiceRecorder&&voiceRecorder.state!=='inactive')stopVoiceRecording(true);
  if(backgroundPaused||manualLeave||!roomId||!participantId)return;
  backgroundPaused=true;connected=false;clearTimers();$('send').disabled=true;
  setStatus('Offline');$('roomMeta').textContent='You are away · your status is Offline';
@@ -1172,7 +1316,7 @@ window.addEventListener('pagehide',pauseForBackground);
 window.addEventListener('pageshow',()=>{resumeFromBackground();scheduleReadCheck()});
 window.addEventListener('focus',()=>{resumeFromBackground();scheduleReadCheck()});
 $('messages').addEventListener('scroll',scheduleReadCheck,{passive:true});
-$('leave').onclick=async()=>{closeChatOptions();const leavingRoom=roomId;await forgetRememberedSession(leavingRoom).catch(error=>console.warn('Could not clear the remembered session:',error));manualLeave=true;backgroundPaused=false;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;currentAuthToken=null;currentRecoveryCode=null;connected=false;$('shareInvite').classList.add('hidden');showSetup();setSetupStatus('This device has been forgotten. Join again with your room name and shared password.');setStatus('Not connected')};
+$('leave').onclick=async()=>{clearVoiceDraft();closeChatOptions();const leavingRoom=roomId;await forgetRememberedSession(leavingRoom).catch(error=>console.warn('Could not clear the remembered session:',error));manualLeave=true;backgroundPaused=false;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;currentAuthToken=null;currentRecoveryCode=null;connected=false;$('shareInvite').classList.add('hidden');showSetup();setSetupStatus('This device has been forgotten. Join again with your room name and shared password.');setStatus('Not connected')};
 if(!location.hash&&validRoom(localStorage.getItem('secureChatRoom')))location.hash=localStorage.getItem('secureChatRoom');
 window.addEventListener('hashchange',configureInviteMode);configureInviteMode();
 resumeRememberedDevice();
