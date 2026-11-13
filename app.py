@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 TITLE = "SecureChatBox"
@@ -198,6 +198,30 @@ async def health() -> dict[str, str]:
         conn.execute("SELECT 1").fetchone()
     return {"status": "ok", "storage": "ok"}
 
+
+
+PUBLIC_SITE_URL = "https://securechatbox-ki63.onrender.com"
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt() -> str:
+    # Keep private WebSocket endpoints out of crawler discovery.
+    return (
+        "User-agent: *\\n"
+        "Allow: /\\n"
+        "Disallow: /ws/\\n"
+        f"Sitemap: {PUBLIC_SITE_URL}/sitemap.xml\\n"
+    )
+
+
+@app.get("/sitemap.xml")
+async def sitemap_xml() -> Response:
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f'<url><loc>{PUBLIC_SITE_URL}/</loc></url>'
+        '</urlset>'
+    )
+    return Response(content=xml, media_type="application/xml")
 
 @app.websocket("/ws/{room_id}")
 async def chat_socket(websocket: WebSocket, room_id: str) -> None:
