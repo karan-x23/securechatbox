@@ -671,7 +671,7 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
   <button id="shareInvite" class="chat-menu-item hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">↗</span><span class="chat-menu-copy"><strong>Invite your person</strong><small>Share a private link or code</small></span></button>
   <button id="toggleRecovery" class="chat-menu-item hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">♡</span><span class="chat-menu-copy"><strong>Recovery code</strong><small>Keep a private backup</small></span></button>
   <div class="chat-menu-divider"></div>
-  <button id="leave" class="chat-menu-item chat-menu-leave hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">↪</span><span class="chat-menu-copy"><strong>Leave chat</strong><small>Disconnect this device</small></span></button>
+  <button id="leave" class="chat-menu-item chat-menu-leave hidden" type="button"><span class="chat-menu-icon" aria-hidden="true">↪</span><span class="chat-menu-copy"><strong>Forget this device</strong><small>Turn off automatic reconnect</small></span></button>
  </div>
 </div></header>
 <main>
@@ -813,6 +813,101 @@ async function deriveKeys(pass,room){const aesBits=await deriveBits(pass,room+':
 async function encrypt(obj){const iv=crypto.getRandomValues(new Uint8Array(12));const data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));return {iv:b64url(iv),data:b64url(new Uint8Array(data))}}
 async function decrypt(payload){const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64bytes(payload.iv)},key,b64bytes(payload.data));return JSON.parse(dec.decode(raw))}
 function participantStorageKey(){return 'securechat:participant:'+roomId}
+const REMEMBERED_DB_NAME='securechat-remembered-device';
+function openRememberedSessionsDb(){
+ return new Promise((resolve,reject)=>{
+  if(!window.indexedDB){reject(new Error('This browser does not support remembered sessions.'));return}
+  const request=indexedDB.open(REMEMBERED_DB_NAME,1);
+  request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains('sessions'))db.createObjectStore('sessions',{keyPath:'roomId'})};
+  request.onsuccess=()=>resolve(request.result);
+  request.onerror=()=>reject(request.error||new Error('Could not open this device’s private session store.'));
+  request.onblocked=()=>reject(new Error('The private session store is busy. Close other SecureChatBox tabs and retry.'));
+ });
+}
+async function readRememberedSessionRecord(targetRoom){
+ const db=await openRememberedSessionsDb();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('sessions','readonly');
+  const request=tx.objectStore('sessions').get(targetRoom);
+  let record=null;
+  request.onsuccess=()=>{record=request.result||null};
+  request.onerror=()=>reject(request.error||new Error('Could not read the saved session.'));
+  tx.oncomplete=()=>{db.close();resolve(record)};
+  tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not read the saved session.'))};
+  tx.onabort=()=>{db.close();reject(tx.error||new Error('The saved-session read was interrupted.'))};
+ });
+}
+async function writeRememberedSessionRecord(record){
+ const db=await openRememberedSessionsDb();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('sessions','readwrite');
+  tx.objectStore('sessions').put(record);
+  tx.oncomplete=()=>{db.close();resolve(true)};
+  tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not save this device session.'))};
+  tx.onabort=()=>{db.close();reject(tx.error||new Error('Saving this device session was interrupted.'))};
+ });
+}
+async function forgetRememberedSession(targetRoom){
+ if(!validRoom(targetRoom)||!window.indexedDB)return;
+ const db=await openRememberedSessionsDb();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('sessions','readwrite');
+  tx.objectStore('sessions').delete(targetRoom);
+  tx.oncomplete=()=>{db.close();resolve(true)};
+  tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not forget this device.'))};
+  tx.onabort=()=>{db.close();reject(tx.error||new Error('Forgetting this device was interrupted.'))};
+ });
+}
+async function saveRememberedDeviceSession(){
+ if(!window.indexedDB||!key||!currentAuthToken||!currentRecoveryCode||!validRoom(roomId)||!participantId)return false;
+ const iv=crypto.getRandomValues(new Uint8Array(12));
+ const credentials=enc.encode(JSON.stringify({authToken:currentAuthToken,recoveryCode:currentRecoveryCode}));
+ const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,credentials);
+ await writeRememberedSessionRecord({
+  roomId,participantId,name:$('displayName').value.trim(),
+  encryptionKey:key,
+  credentialCipher:{iv:b64url(iv),data:b64url(new Uint8Array(encrypted))},
+  savedAt:Date.now()
+ });
+ return true;
+}
+async function loadRememberedDeviceSession(targetRoom){
+ const record=await readRememberedSessionRecord(targetRoom);
+ if(!record||!record.encryptionKey||!record.credentialCipher||!record.participantId)return null;
+ try{
+  const raw=await crypto.subtle.decrypt(
+   {name:'AES-GCM',iv:b64bytes(record.credentialCipher.iv)},
+   record.encryptionKey,b64bytes(record.credentialCipher.data)
+  );
+  const credentials=JSON.parse(dec.decode(raw));
+  if(typeof credentials.authToken!=='string'||typeof credentials.recoveryCode!=='string')throw new Error('Saved credentials are incomplete.');
+  return {roomId:record.roomId,participantId:record.participantId,name:record.name||'',encryptionKey:record.encryptionKey,authToken:credentials.authToken,recoveryCode:credentials.recoveryCode};
+ }catch(error){
+  await forgetRememberedSession(targetRoom).catch(()=>{});
+  throw new Error('The saved session could not be unlocked. Please join again with your shared password.');
+ }
+}
+async function resumeRememberedDevice(){
+ const targetRoom=validRoom(location.hash.slice(1))?location.hash.slice(1):localStorage.getItem('secureChatRoom');
+ if(!validRoom(targetRoom)||!window.indexedDB||!window.crypto?.subtle)return;
+ try{
+  const saved=await loadRememberedDeviceSession(targetRoom);
+  if(!saved)return;
+  roomId=saved.roomId;participantId=saved.participantId;key=saved.encryptionKey;
+  localStorage.setItem('secureChatRoom',roomId);
+  localStorage.setItem(participantStorageKey(),participantId);
+  if(saved.name)localStorage.setItem('secureChatName',saved.name);
+  localStorage.setItem('securechat:recovery:'+roomId,saved.recoveryCode);
+  $('displayName').value=saved.name||localStorage.getItem('secureChatName')||'';
+  $('roomName').value=localStorage.getItem('secureChatRoomName')||'';
+  $('roomMeta').textContent='Welcome back · reconnecting to your private chat…';
+  setStatus('Welcome back · reconnecting…');
+  connectSocket('join',saved.authToken,saved.recoveryCode);
+ }catch(error){
+  console.warn('SecureChatBox could not restore its remembered session:',error);
+  setSetupStatus(error.message||'Please enter your shared password to reconnect.');
+ }
+}
 function unlockAudio(){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}catch(e){audio=null}}
 function beep(){if(!$('soundOn').checked||!audio||audio.state!=='running')return;try{const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=680;g.gain.setValueAtTime(.0001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.06,audio.currentTime+.015);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.16);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.17)}catch(e){}}
 function setStatus(s){$('topStatus').textContent=s;const dot=$('presenceDot');if(dot){dot.className='presence-dot';const value=s.toLowerCase();dot.classList.add(value.includes('online')?'online':value.includes('offline')?'offline':'waiting')}}
@@ -864,7 +959,7 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
  socket.onopen=()=>{if(ws!==socket)return;socket.send(JSON.stringify({type:'hello',action:activeAction,participant_id:participantId,name:$('displayName').value.trim(),auth_token:authToken,recovery_code:recoveryCode}));pingTimer=setInterval(()=>{if(ws===socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'ping'}))},25000)};
  socket.onmessage=async ev=>{if(ws!==socket)return;let packet;try{packet=JSON.parse(ev.data)}catch{return}
   if(packet.type==='ready'){
-   connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);
+   connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);saveRememberedDeviceSession().catch(error=>console.warn('Automatic reconnect could not be saved on this device:',error));
    if(action==='create'||action==='join'){$('shareInvite').classList.remove('hidden');$('toggleRecovery').classList.remove('hidden')}
    activePairCode=packet.pair_code||localStorage.getItem('securechat:pair:'+roomId)||'';
    if(activePairCode){localStorage.setItem('securechat:pair:'+roomId,activePairCode);$('pairCodeDisplay').textContent=formatPairCode(activePairCode)}
@@ -888,7 +983,7 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
  };
  socket.onerror=()=>{if(ws===socket){setStatus('Connection interrupted');$('roomMeta').textContent='The secure connection could not be completed. Check your network and retry.'}};
  socket.onclose=ev=>{if(ws!==socket)return;connected=false;$('send').disabled=true;if(manualLeave)return;if(backgroundPaused){setStatus('Offline');$('roomMeta').textContent='You are away. You will be online again when you return.';return;}const reason=ev.reason||'Connection lost';
-  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The pairing code is correct, but this password does not match the room. Your browser may have filled a saved password. Tap Show, clear the field, and type the creator’s exact shared phrase yourself. Capital letters and spaces must match.':reason.includes('Room already exists')?'This room name is already in use. Join it with the shared password, or choose a different room name.':reason.includes('two participants')?'This private room already has two participants. Ask the creator for a new room.':reason.includes('Room not found')?'This private room could not be found. Ask the creator for a fresh pairing code.':reason;setSetupStatus(msg);return}
+  if(ev.code===1008){if(reason.includes('secret phrase')||reason.includes('Room not found'))forgetRememberedSession(roomId).catch(()=>{});manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The pairing code is correct, but this password does not match the room. Your browser may have filled a saved password. Tap Show, clear the field, and type the creator’s exact shared phrase yourself. Capital letters and spaces must match.':reason.includes('Room already exists')?'This room name is already in use. Join it with the shared password, or choose a different room name.':reason.includes('two participants')?'This private room already has two participants. Ask the creator for a new room.':reason.includes('Room not found')?'This private room could not be found. Ask the creator for a fresh pairing code.':reason;setSetupStatus(msg);return}
   if(ev.code===4001){manualLeave=true;setStatus('Session opened on another device');$('roomMeta').textContent='This participant is already active elsewhere.';showSetup();setSetupStatus('This recovery identity is already connected on another device. Close the other session before reconnecting here.');return}
   setStatus('Reconnecting…');$('roomMeta').textContent='Connection dropped. Trying to reconnect…';
   reconnectTimer=setTimeout(()=>{if(!manualLeave)connectSocket('join',authToken,recoveryCode)},reconnectDelay);reconnectDelay=Math.min(30000,Math.round(reconnectDelay*1.8));
@@ -1038,7 +1133,8 @@ window.addEventListener('pagehide',pauseForBackground);
 window.addEventListener('pageshow',()=>{resumeFromBackground();scheduleReadCheck()});
 window.addEventListener('focus',()=>{resumeFromBackground();scheduleReadCheck()});
 $('messages').addEventListener('scroll',scheduleReadCheck,{passive:true});
-$('leave').onclick=()=>{closeChatOptions();manualLeave=true;backgroundPaused=false;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;currentAuthToken=null;currentRecoveryCode=null;connected=false;$('shareInvite').classList.add('hidden');showSetup();setSetupStatus('Disconnected. Your saved chat remains available when you join again.');setStatus('Not connected')};
+$('leave').onclick=async()=>{closeChatOptions();const leavingRoom=roomId;await forgetRememberedSession(leavingRoom).catch(error=>console.warn('Could not clear the remembered session:',error));manualLeave=true;backgroundPaused=false;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;currentAuthToken=null;currentRecoveryCode=null;connected=false;$('shareInvite').classList.add('hidden');showSetup();setSetupStatus('This device has been forgotten. Join again with your room name and shared password.');setStatus('Not connected')};
 if(!location.hash&&validRoom(localStorage.getItem('secureChatRoom')))location.hash=localStorage.getItem('secureChatRoom');
 window.addEventListener('hashchange',configureInviteMode);configureInviteMode();
+resumeRememberedDevice();
 </script></body></html>
