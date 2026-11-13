@@ -29,6 +29,7 @@ PAIR_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 PAIR_CODE_RE = re.compile(r"^[A-HJ-NP-Z2-9]{16}$")
 HISTORY_LIMIT = 200
 HEARTBEAT_TIMEOUT = 75
+MAX_ENCRYPTED_PAYLOAD_CHARS = 450_000  # Supports short, client-encrypted voice notes.
 DB_PATH = os.environ.get("DATABASE_PATH", "./data/securechatbox.sqlite3")
 AUTH_PEPPER = os.environ.get("AUTH_PEPPER", "")
 
@@ -173,7 +174,7 @@ def _valid_payload(payload: Any) -> bool:
     iv, data = payload.get("iv"), payload.get("data")
     if not isinstance(iv, str) or not isinstance(data, str):
         return False
-    if len(iv) > 64 or len(data) > 30_000:
+    if len(iv) > 64 or len(data) > MAX_ENCRYPTED_PAYLOAD_CHARS:
         return False
     return True
 
