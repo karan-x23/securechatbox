@@ -262,7 +262,35 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
  .pair-code-display{align-items:stretch;flex-direction:column}
  .pair-code-display code{text-align:center;font-size:.98rem}
  .pair-code-display button,.share-code-action{width:100%;min-height:42px}
-}</style></head>
+}.chatbg{position:relative}
+.emoji-picker{position:absolute;z-index:20;left:18px;bottom:82px;width:min(360px,calc(100% - 36px));padding:13px;background:#fff;border:1px solid #ebe7f2;border-radius:18px;box-shadow:0 18px 55px #29213c24;display:flex;flex-direction:column;gap:10px;animation:emoji-pop .14s ease-out}
+.emoji-picker.hidden{display:none}
+.emoji-picker-top{display:flex;align-items:center;justify-content:space-between;color:#343047;font-size:.88rem}
+.emoji-close{width:30px;height:30px;min-height:30px;padding:0;border-radius:50%;background:#f4f2f8;color:#777287;font-size:1.1rem;box-shadow:none!important}
+.emoji-search-wrap{height:38px;display:flex;align-items:center;gap:8px;padding:0 11px;border:1px solid #e9e6ef;background:#f8f7fb;border-radius:11px;color:#918ba0}
+.emoji-search-wrap input{border:0!important;box-shadow:none!important;background:transparent!important;padding:0;min-height:34px;font-size:.83rem;outline:none}
+.emoji-categories{display:flex;align-items:center;justify-content:space-between;gap:3px;padding-bottom:7px;border-bottom:1px solid #f0edf4}
+.emoji-categories button{width:35px;height:34px;min-height:34px;padding:0;border-radius:9px;background:transparent;color:#777287;font-size:1.1rem;box-shadow:none}
+.emoji-categories button.active{background:#f0edff;color:#6451c2}
+.emoji-section-label{font-size:.72rem;font-weight:750;color:#777287;padding:0 2px}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;max-height:190px;overflow-y:auto;overscroll-behavior:contain}
+.emoji-choice{width:100%;aspect-ratio:1;min-height:35px;padding:0;background:transparent;border-radius:9px;box-shadow:none!important;font-size:1.35rem;line-height:1}
+.emoji-choice:hover,.emoji-choice:focus-visible{background:#f3f0ff;transform:none;filter:none}
+.emoji-empty{padding:18px 6px;text-align:center;color:#9691a0;font-size:.78rem}
+.emoji-empty.hidden{display:none}
+.emoji-toggle{width:42px!important;height:46px!important;min-height:46px!important;flex:none;border-radius:50%!important;padding:0!important;background:transparent!important;color:#888398!important;box-shadow:none!important;font-size:1.55rem!important}
+.emoji-toggle:hover,.emoji-toggle[aria-expanded="true"]{background:#f1effa!important;color:#6654c5!important}
+.composer{gap:7px}
+@keyframes emoji-pop{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:720px){
+ .emoji-picker{left:10px;bottom:72px;width:min(360px,calc(100% - 20px));padding:12px;border-radius:17px}
+ .emoji-grid{max-height:min(35dvh,190px);grid-template-columns:repeat(8,minmax(0,1fr))}
+ .emoji-choice{min-height:36px;font-size:1.38rem}
+ .emoji-toggle{width:39px!important;height:46px!important;min-height:46px!important}
+ .emoji-categories button{width:34px}
+}
+@media(prefers-reduced-motion:reduce){.emoji-picker{animation:none}}
+</style></head>
 <body><div class="shell">
 <header><div class="avatar" aria-hidden="true">S</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="shareInvite" class="secondary disconnect hidden" type="button">↗ Invite</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
 <main>
@@ -315,7 +343,28 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
  <div id="recoveryPanel" class="recovery-panel hidden"><div class="recovery-heading"><strong id="recoveryState">Your personal recovery code</strong><button id="closeRecovery" class="recovery-close" type="button" aria-label="Close recovery panel">×</button></div><p>Keep a personal backup so you can restore this chat on another phone. Your shared secret phrase is still required to read messages.</p><div class="recovery-line"><code id="recoveryCode" class="hidden"></code><button id="revealRecovery" class="secondary" type="button">Show code</button><button id="copyRecovery" type="button">Copy code</button></div><div id="recoveryCopyStatus" class="recovery-copy-status" role="status"></div></div>
  <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">♡</div><strong>Your private chat is ready</strong><span>Tap Invite in the top bar and send the invite to your person. Once they join with the same secret phrase, your conversation starts here.</span></div></div>
  <div id="typing" class="typing"></div>
- <form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off" aria-label="Message"><button id="send" aria-label="Send" disabled>➤</button></form>
+ <div id="emojiPicker" class="emoji-picker hidden" role="dialog" aria-label="Choose an emoji">
+ <div class="emoji-picker-top"><strong>Emojis</strong><button type="button" id="closeEmoji" class="emoji-close" aria-label="Close emoji picker">×</button></div>
+ <label class="emoji-search-wrap"><span aria-hidden="true">⌕</span><input id="emojiSearch" type="search" placeholder="Search emoji" autocomplete="off" aria-label="Search emoji"></label>
+ <div class="emoji-categories" id="emojiCategories" role="tablist" aria-label="Emoji categories">
+  <button type="button" data-category="recent" aria-label="Recent emojis" title="Recent">◷</button>
+  <button type="button" data-category="smileys" aria-label="Smileys and people" title="Smileys">☺</button>
+  <button type="button" data-category="animals" aria-label="Animals and nature" title="Animals">🐻</button>
+  <button type="button" data-category="food" aria-label="Food and drink" title="Food">🍕</button>
+  <button type="button" data-category="activities" aria-label="Activities" title="Activities">⚽</button>
+  <button type="button" data-category="travel" aria-label="Travel and places" title="Travel">🚗</button>
+  <button type="button" data-category="objects" aria-label="Objects" title="Objects">💡</button>
+  <button type="button" data-category="symbols" aria-label="Symbols" title="Symbols">❤️</button>
+ </div>
+ <div class="emoji-section-label" id="emojiSectionLabel">Smileys & people</div>
+ <div class="emoji-grid" id="emojiGrid" role="group" aria-label="Emoji choices"></div>
+ <div class="emoji-empty hidden" id="emojiEmpty">No emoji found. Try another search.</div>
+</div>
+<form id="sendForm" class="composer">
+ <button type="button" id="emojiToggle" class="emoji-toggle" aria-label="Open emoji picker" aria-expanded="false" title="Emojis">☺</button>
+ <input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off" aria-label="Message">
+ <button id="send" aria-label="Send" disabled>➤</button>
+</form>
 </section>
 </main></div><script>
 const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false,activePairCode=null;
@@ -323,6 +372,56 @@ const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNode
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64bytes(s){let v=s.replace(/-/g,'+').replace(/_/g,'/');v+='='.repeat((4-v.length%4)%4);return Uint8Array.from(atob(v),c=>c.charCodeAt(0))}
 function randomHex(n=16){return Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('')}
+const EMOJI_GROUPS={
+ recent:{label:'Recently used',items:[]},
+ smileys:{label:'Smileys & people',items:'😀 😃 😄 😁 😆 😅 😂 🙂 🙃 🫠 😉 😊 😇 🥰 😍 🤩 😘 😗 ☺️ 😚 😙 🥲 😋 😛 😜 🤪 😝 🤑 🤗 🫣 🤭 🫢 🤫 🤔 🫡 🤐 🤨 😐 😑 😶 🫥 😏 😒 🙄 😬 😮‍💨 🤥 😌 😔 😪 🤤 😴 🥱 😷 🤒 🤕 🤢 🤮 🤧 🥵 🥶 🥴 😵 🤯 🥳 🥸 😎 🤓 🧐 😕 🫤 😟 🙁 ☹️ 😮 😯 😲 😳 🥺 🥹 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 👿 💀 ☠️ 💩 🤡 👻 👽 🤖 🎃 😺 😸 😹 😻 😼 😽 🙀 😿 😾'.split(' ')},
+ animals:{label:'Animals & nature',items:'🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐻‍❄️ 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐒 🐔 🐧 🐦 🐤 🐣 🦆 🦅 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🪱 🐛 🦋 🐌 🐞 🐜 🪰 🪲 🪳 🦟 🦗 🕷️ 🕸️ 🦂 🐢 🐍 🦎 🦖 🦕 🐙 🦑 🦐 🦞 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🐆 🦓 🦍 🦧 🦣 🐘 🦛 🦏 🐪 🐫 🦒 🦘 🦬 🐃 🐂 🐄 🐎 🐖 🐏 🐑 🦙 🐐 🦌 🐕 🐩 🦮 🐈 🐓 🦃 🦚 🦜 🦢 🪿 🦩 🕊️ 🐇 🦝 🦨 🦡 🦫 🦦 🦥 🐁 🐀 🐿️ 🦔 🌵 🎄 🌲 🌳 🌴 🪵 🌱 🌿 ☘️ 🍀 🎍 🪴 🎋 🍃 🍂 🍁 🪺 🪹 🍄 🌾 💐 🌷 🌹 🥀 🪷 🌺 🌸 🌼 🌻'.split(' ')},
+ food:{label:'Food & drink',items:'🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍈 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🫒 🥑 🍆 🥔 🥕 🌽 🌶️ 🫑 🥒 🥬 🥦 🧄 🧅 🍄 🥜 🫘 🌰 🍞 🥐 🥖 🫓 🥨 🥯 🥞 🧇 🧀 🍖 🍗 🥩 🥓 🍔 🍟 🍕 🌭 🥪 🌮 🌯 🫔 🥙 🧆 🥚 🍳 🥘 🍲 🫕 🥣 🥗 🍿 🧈 🧂 🥫 🍱 🍘 🍙 🍚 🍛 🍜 🍝 🍠 🍢 🍣 🍤 🍥 🥮 🍡 🥟 🥠 🥡 🦪 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🥧 🍫 🍬 🍭 🍮 🍯 🍼 🥛 ☕ 🫖 🍵 🍶 🍾 🍷 🍸 🍹 🍺 🍻 🥂 🥃 🫗 🥤 🧋 🧃 🧉'.split(' ')},
+ activities:{label:'Activities',items:'⚽ 🏀 🏈 ⚾ 🥎 🎾 🏐 🏉 🥏 🎱 🪀 🏓 🏸 🏒 🏑 🥍 🏏 🪃 🥅 ⛳ 🪁 🏹 🎣 🤿 🥊 🥋 🎽 🛹 🛼 🛷 ⛸️ 🥌 🎿 ⛷️ 🏂 🏋️ 🤼 🤸 ⛹️ 🤺 🤾 🏌️ 🏇 🧘 🏄 🏊 🤽 🚣 🧗 🚵 🚴 🏆 🥇 🥈 🥉 🏅 🎖️ 🏵️ 🎗️ 🎫 🎟️ 🎪 🤹 🎭 🩰 🎨 🎬 🎤 🎧 🎼 🎹 🥁 🪘 🎷 🎺 🪗 🎸 🪕 🎻 🪈 🎲 ♟️ 🎯 🎳 🎮 🕹️ 🧩'.split(' ')},
+ travel:{label:'Travel & places',items:'🚗 🚕 🚙 🚌 🚎 🏎️ 🚓 🚑 🚒 🚐 🛻 🚚 🚛 🚜 🏍️ 🛵 🚲 🛴 🛞 🚨 🚔 🚍 🚘 🚖 🚡 🚠 🚟 🚃 🚋 🚞 🚝 🚄 🚅 🚈 🚂 ✈️ 🛫 🛬 🛩️ 💺 🚁 🚀 🛸 🚢 ⛵ 🛥️ 🚤 🛳️ ⛴️ 🗼 🗽 🗿 🏰 🏯 🏟️ 🎡 🎢 🎠 ⛲ ⛱️ 🏖️ 🏝️ 🏜️ 🌋 ⛰️ 🏔️ 🗻 🏕️ ⛺ 🛖 🏠 🏡 🏘️ 🏚️ 🏗️ 🏭 🏢 🏬 🏣 🏤 🏥 🏦 🏨 🏪 🏫 🏩 💒 🏛️ ⛪ 🕌 🛕 🕍 🕋 ⛩️ 🌅 🌄 🌠 🎇 🎆 🌇 🌆 🏙️ 🌃 🌌 🌉 🌁'.split(' ')},
+ objects:{label:'Objects',items:'⌚ 📱 📲 💻 ⌨️ 🖥️ 🖨️ 🖱️ 🖲️ 💽 💾 💿 📀 📼 📷 📸 📹 🎥 📽️ 🎞️ 📞 ☎️ 📟 📠 📺 📻 🎙️ 🎚️ 🎛️ 🧭 ⏱️ ⏲️ ⏰ 🕰️ ⌛ ⏳ 📡 🔋 🪫 🔌 💡 🔦 🕯️ 🪔 🧯 🛢️ 💸 💵 💴 💶 💷 🪙 💰 💳 💎 ⚖️ 🪜 🧰 🪛 🔧 🔨 ⚒️ 🛠️ ⛏️ 🪚 🔩 ⚙️ 🪤 🧱 ⛓️ 🧲 🔫 💣 🧨 🪓 🔪 🗡️ ⚔️ 🛡️ 🚬 ⚰️ 🪦 ⚱️ 🏺 🔮 📿 🧿 🪬 💈 ⚗️ 🔭 🔬 🕳️ 🩹 🩺 💊 💉 🩸 🧬 🦠 🧫 🧪 🌡️ 🧹 🪠 🧺 🧻 🚽 🚰 🚿 🛁 🛀 🧼 🪥 🪒 🧽 🪣 🧴 🛎️ 🔑 🗝️ 🚪 🪞 🪟 🛏️ 🛋️ 🪑 🚬 🧸 🪆 🖼️ 🛍️ 🛒 🎁 🎈 🎏 🎀 🪄 🪅 🎊 🎉 🎎 🏮 🎐 🧧 ✉️ 📩 📨 📧 💌 📥 📤 📦 🏷️ 📪 📫 📬 📭 📮 📯 📜 📃 📄 📑 🧾 📊 📈 📉 🗒️ 🗓️ 📆 📅 🗑️ 📇 🗃️ 🗳️ 📋 📁 📂 🗂️ 🗞️ 📰 📓 📔 📒 📕 📗 📘 📙 📚 📖 🔖 🧷 🔗 📎 🖇️ 📐 📏 🧮 📌 📍 ✂️ 🖊️ 🖋️ ✒️ 🖌️ 🖍️ 📝 ✏️ 🔍 🔎 🔏 🔐 🔒 🔓'.split(' ')},
+ symbols:{label:'Symbols',items:'❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❤️‍🔥 ❤️‍🩹 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ♥️ 💌 💋 💯 💢 💥 💫 💦 💨 🕳️ 💣 💬 👁️‍🗨️ 🗨️ 🗯️ 💭 💤 🔔 🔕 🎵 🎶 🚫 ⛔ 📛 🚷 🚯 🚳 🚱 🔞 📵 🔇 🔈 🔉 🔊 🔔 ♻️ ✅ ☑️ ✔️ ✖️ ❌ ❎ ➕ ➖ ➗ ✳️ ❇️ ‼️ ⁉️ ❓ ❔ ❕ ❗ ⚠️ 🚸 🔱 ⚜️ 🔰 ♻️ 💹 Ⓜ️ 🛂 🛃 🛄 🛅 🚻 🚹 🚺 🚼 🚾 ⚧️ 🚮 🎦 📶 🈁 🔣 ℹ️ 🔤 🔡 🔠 🆖 🆗 🆙 🆒 🆕 🆓 🆘 🆚 🆔 🆑 🅰️ 🅱️ 🆎 🅾️ 🆘 🏧 🚾 ♈ ♉ ♊ ♋ ♌ ♍ ♎ ♏ ♐ ♑ ♒ ♓ ⛎ 🔯 ✡️ ☸️ ☯️ ✝️ ☦️ ☪️ ☮️ 🕉️ ☢️ ☣️'.split(' ')}
+};
+const EMOJI_CATEGORY_ORDER=['recent','smileys','animals','food','activities','travel','objects','symbols'];
+let activeEmojiCategory='smileys',emojiRecent=[];
+function loadRecentEmoji(){try{const saved=JSON.parse(localStorage.getItem('securechat:recent-emoji')||'[]');if(Array.isArray(saved))emojiRecent=saved.filter(x=>typeof x==='string').slice(0,24)}catch(e){emojiRecent=[]}EMOJI_GROUPS.recent.items=emojiRecent}
+function renderEmojiPicker(){
+ const query=$('emojiSearch').value.trim().toLowerCase();
+ let items=[];
+ if(query){items=Object.values(EMOJI_GROUPS).filter((g)=>g!==EMOJI_GROUPS.recent).flatMap(g=>g.items).filter((x,i,a)=>a.indexOf(x)===i);$('emojiSectionLabel').textContent='Search results'}
+ else{items=EMOJI_GROUPS[activeEmojiCategory].items;$('emojiSectionLabel').textContent=EMOJI_GROUPS[activeEmojiCategory].label}
+ // Emoji names are intentionally not inferred: search filters by Unicode rendering-independent aliases.
+ const aliases={
+ smileys:'smile happy laugh wink love heart kiss cry sad angry cool fire sparkle',
+ animals:'animal nature dog cat bear panda rabbit fox bird tiger lion flower tree',
+ food:'food drink pizza burger fruit apple coffee cake sushi bread strawberry',
+ activities:'sport game football soccer basketball music art gift medal ball',
+ travel:'car travel airplane train rocket house beach mountain city ship',
+ objects:'phone laptop computer light bulb book watch money key camera tool',
+ symbols:'heart love symbol check cross question exclamation star peace warning'
+ };
+ if(query){items=Object.entries(EMOJI_GROUPS).filter(([k])=>k!=='recent'&&(aliases[k]||'').includes(query)).flatMap(([,g])=>g.items).filter((x,i,a)=>a.indexOf(x)===i)}
+ $('emojiGrid').replaceChildren();
+ $('emojiEmpty').classList.toggle('hidden',items.length>0);
+ for(const emoji of items){
+  const button=document.createElement('button');button.type='button';button.className='emoji-choice';button.textContent=emoji;button.setAttribute('aria-label',emoji);button.title=emoji;
+  button.addEventListener('click',()=>insertEmoji(emoji));$('emojiGrid').append(button)
+ }
+ for(const button of $('emojiCategories').querySelectorAll('[data-category]')){button.classList.toggle('active',button.dataset.category===activeEmojiCategory&&!query);button.setAttribute('aria-selected',String(button.dataset.category===activeEmojiCategory&&!query))}
+}
+function insertEmoji(emoji){
+ const input=$('message');const start=input.selectionStart??input.value.length;const end=input.selectionEnd??start;
+ const next=input.value.slice(0,start)+emoji+input.value.slice(end);
+ if(next.length>Number(input.maxLength))return;
+ input.value=next;const caret=start+emoji.length;input.focus();input.setSelectionRange(caret,caret);input.dispatchEvent(new Event('input',{bubbles:true}));
+ emojiRecent=[emoji,...emojiRecent.filter(x=>x!==emoji)].slice(0,24);EMOJI_GROUPS.recent.items=emojiRecent;
+ try{localStorage.setItem('securechat:recent-emoji',JSON.stringify(emojiRecent))}catch(e){}
+}
+function setEmojiPicker(open){
+ $('emojiPicker').classList.toggle('hidden',!open);$('emojiToggle').setAttribute('aria-expanded',String(open));
+ $('emojiToggle').setAttribute('aria-label',open?'Close emoji picker':'Open emoji picker');
+ if(open){$('emojiSearch').value='';activeEmojiCategory='smileys';loadRecentEmoji();renderEmojiPicker()}
+}
 function formatPairCode(code){return (code||'').replace(/[^A-Z2-9]/gi,'').toUpperCase().match(/.{1,4}/g)?.join(' ')||''}
 function normalizePairCode(code){return (code||'').replace(/[\s-]/g,'').toUpperCase()}
 function validPairCode(code){return /^[A-HJ-NP-Z2-9]{16}$/.test(normalizePairCode(code))}
@@ -453,7 +552,14 @@ async function joinUsingPairCode(){
 }
 $('joinByPairCode').onclick=joinUsingPairCode;
 $('pairCodeInput').addEventListener('input',()=>{$('pairCodeInput').value=normalizePairCode($('pairCodeInput').value).slice(0,16).replace(/(.{4})(?=.)/g,'$1-')});
-$('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
+$('emojiToggle').onclick=()=>setEmojiPicker($('emojiPicker').classList.contains('hidden'));
+$('closeEmoji').onclick=()=>setEmojiPicker(false);
+$('emojiSearch').addEventListener('input',renderEmojiPicker);
+$('emojiCategories').addEventListener('click',e=>{const tab=e.target.closest('[data-category]');if(!tab)return;activeEmojiCategory=tab.dataset.category;$('emojiSearch').value='';renderEmojiPicker()});
+$('emojiPicker').addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('click',e=>{if(!$('emojiPicker').classList.contains('hidden')&&!$('emojiPicker').contains(e.target)&&e.target!==$('emojiToggle'))setEmojiPicker(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('emojiPicker').classList.contains('hidden')){setEmojiPicker(false);$('emojiToggle').focus()}});
+$('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';setEmojiPicker(false);}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
 $('message').addEventListener('input',()=>{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type:'typing',active:true}));clearTimeout(typingTimer);typingTimer=setTimeout(()=>ws&&ws.readyState===WebSocket.OPEN&&ws.send(JSON.stringify({type:'typing',active:false})),1200)}});
 function pauseForBackground(){
  if(backgroundPaused||manualLeave||!roomId||!participantId)return;
