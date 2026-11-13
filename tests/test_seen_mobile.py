@@ -39,7 +39,7 @@ class MobileAndReadReceiptUiTests(unittest.TestCase):
 
     def test_online_and_offline_presence_labels_are_available(self):
         self.assertIn("other.online?' · Online':' · Offline'", self.html)
-        self.assertIn("presence-dot offline", self.html)
+        self.assertIn("value.includes('offline')?'offline'", self.html)
 
     def test_mobile_layout_uses_safe_areas_and_large_touch_targets(self):
         self.assertIn("@media(max-width:640px)", self.html)
