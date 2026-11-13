@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -101,6 +102,13 @@ def init_db() -> None:
         message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(messages)").fetchall()}
         if "client_message_id" not in message_columns:
             conn.execute("ALTER TABLE messages ADD COLUMN client_message_id TEXT")
+        participant_columns = {row["name"] for row in conn.execute("PRAGMA table_info(participants)").fetchall()}
+        if "recovery_hash" not in participant_columns:
+            conn.execute("ALTER TABLE participants ADD COLUMN recovery_hash TEXT")
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_participants_recovery_hash "
+            "ON participants(recovery_hash) WHERE recovery_hash IS NOT NULL"
+        )
         conn.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_sender_client_id "
             "ON messages(room_id, sender_id, client_message_id)"
@@ -200,6 +208,35 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "storage": "ok"}
 
 
+@app.post("/api/recover")
+async def recover_participant(payload: dict[str, Any]) -> JSONResponse:
+    # Recovery codes are generated from 256 bits of browser randomness. Only their
+    # peppered hash is stored; the shared phrase is still required to enter/decrypt.
+    recovery_code = payload.get("recovery_code") if isinstance(payload, dict) else None
+    if not isinstance(recovery_code, str) or not TOKEN_RE.fullmatch(recovery_code):
+        return JSONResponse(
+            {"detail": "Enter a valid recovery code."},
+            status_code=400,
+            headers={"Cache-Control": "no-store"},
+        )
+    verifier = token_hash(recovery_code)
+    with db() as conn:
+        row = conn.execute(
+            """SELECT p.room_id, p.participant_id, p.display_name
+               FROM participants p WHERE p.recovery_hash=?""",
+            (verifier,),
+        ).fetchone()
+    if not row:
+        return JSONResponse(
+            {"detail": "Recovery code not found. Check the code and try again."},
+            status_code=404,
+            headers={"Cache-Control": "no-store"},
+        )
+    return JSONResponse(
+        {"room_id": row["room_id"], "participant_id": row["participant_id"], "display_name": row["display_name"]},
+        headers={"Cache-Control": "no-store"},
+    )
+
 
 PUBLIC_SITE_URL = "https://securechatbox-ki63.onrender.com"
 
@@ -246,14 +283,20 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
         participant_id = hello.get("participant_id")
         display_name = str(hello.get("name", "Guest")).strip()[:32] or "Guest"
         auth_token = hello.get("auth_token")
+        recovery_code = hello.get("recovery_code")
         if action not in {"create", "join"} or not isinstance(participant_id, str) or not PARTICIPANT_RE.fullmatch(participant_id):
             await websocket.close(code=1008, reason="Invalid participant information")
             return
         if not isinstance(auth_token, str) or not TOKEN_RE.fullmatch(auth_token):
             await websocket.close(code=1008, reason="Invalid room credential")
             return
+        if recovery_code is not None and (not isinstance(recovery_code, str) or not TOKEN_RE.fullmatch(recovery_code)):
+            await websocket.close(code=1008, reason="Invalid recovery credential")
+            return
 
         hashed = token_hash(auth_token)
+        recovery_verifier = token_hash(recovery_code) if recovery_code else None
+        recovery_saved = False
         with db() as conn:
             room = conn.execute("SELECT auth_hash FROM rooms WHERE room_id=?", (room_id,)).fetchone()
             if action == "create":
@@ -266,7 +309,7 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
                 return
 
             existing = conn.execute(
-                "SELECT 1 FROM participants WHERE room_id=? AND participant_id=?",
+                "SELECT recovery_hash FROM participants WHERE room_id=? AND participant_id=?",
                 (room_id, participant_id),
             ).fetchone()
             count = conn.execute("SELECT COUNT(*) AS n FROM participants WHERE room_id=?", (room_id,)).fetchone()["n"]
@@ -275,11 +318,26 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
                 return
             now = time.time()
             conn.execute(
-                """INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen)
-                   VALUES(?,?,?,?,?) ON CONFLICT(room_id, participant_id)
+                """INSERT INTO participants(room_id, participant_id, display_name, first_seen, last_seen, recovery_hash)
+                   VALUES(?,?,?,?,?,?) ON CONFLICT(room_id, participant_id)
                    DO UPDATE SET display_name=excluded.display_name, last_seen=excluded.last_seen""",
-                (room_id, participant_id, display_name, now, now),
+                (room_id, participant_id, display_name, now, now, recovery_verifier),
             )
+            saved = conn.execute(
+                "SELECT recovery_hash FROM participants WHERE room_id=? AND participant_id=?",
+                (room_id, participant_id),
+            ).fetchone()
+            if saved and saved["recovery_hash"] is None and recovery_verifier:
+                conn.execute(
+                    "UPDATE participants SET recovery_hash=? WHERE room_id=? AND participant_id=? AND recovery_hash IS NULL",
+                    (recovery_verifier, room_id, participant_id),
+                )
+                saved = conn.execute(
+                    "SELECT recovery_hash FROM participants WHERE room_id=? AND participant_id=?",
+                    (room_id, participant_id),
+                ).fetchone()
+            recovery_saved = bool(saved and saved["recovery_hash"] and recovery_verifier
+                                  and hmac.compare_digest(saved["recovery_hash"], recovery_verifier))
 
         async with _room_lock(room_id):
             peers = room_sockets.setdefault(room_id, {})
@@ -294,6 +352,7 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
         await websocket.send_json({
             "type": "ready",
             "participant_id": participant_id,
+            "recovery_saved": recovery_saved,
             "history": _history(room_id, participant_id),
             "participants": _presence(room_id),
         })

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b141a">
+<meta name="theme-color" content="#f7f6f8">
 <meta name="description" content="SecureChatBox is a private one-to-one chat for two people, with browser-side encryption, encrypted message history and automatic reconnect.">
 <meta name="robots" content="index,follow">
 <meta name="google-site-verification" content="WIadpD3xiTAIIWf01pKcYb9sm2n1QxDm_p4eOdhODzw">
@@ -14,91 +14,139 @@
 <meta name="twitter:card" content="summary">
 <title>SecureChatBox — Private Two-Person Chat</title>
 <style>
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:dark;background:#0b141a;color:#e9edef;--panel:#111b21;--panel2:#202c33;--line:#2a3942;--green:#00a884;--muted:#aebac1;--bubble:#202c33;--mine:#075e50;--blue:#53bdeb}
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light;background:#f6f4f1;color:#29263a;--ink:#29263a;--muted:#777486;--line:#e9e5ed;--purple:#7664d8;--purple-dark:#5b4bc0;--lav:#f0edff;--white:#fff}
 *{box-sizing:border-box}
 html,body{width:100%;height:100%;margin:0}
-body{min-height:100svh;background:radial-gradient(ellipse at top,#14242b 0,#0b141a 58%);display:grid;place-items:center;padding:20px}
-.shell{width:min(100%,900px);height:min(900px,calc(100dvh - 40px));min-height:0;background:var(--panel);border:1px solid #263840;border-radius:22px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 90px #0008}
-header{height:78px;flex:none;display:flex;align-items:center;gap:13px;padding:0 22px;background:linear-gradient(180deg,#24343b,#202c33);border-bottom:1px solid var(--line)}
-.avatar{width:44px;height:44px;flex:none;border-radius:50%;background:linear-gradient(145deg,#0b806c,#164f56);display:grid;place-items:center;font-weight:800;font-size:16px;letter-spacing:-.04em;color:white;box-shadow:0 0 0 3px #ffffff0c}
+body{min-height:100svh;background:radial-gradient(ellipse at 15% 8%,#eee9ff 0,transparent 34%),radial-gradient(ellipse at 90% 95%,#fbe9ed 0,transparent 34%),#f7f6f8;display:grid;place-items:center;padding:22px}
+button,input{font:inherit}
+.shell{width:min(100%,1040px);height:min(900px,calc(100dvh - 44px));min-height:0;background:#fff;border:1px solid #ebe7ef;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 28px 90px #38304c16}
+header{height:76px;flex:none;display:flex;align-items:center;gap:13px;padding:0 28px;background:#fff;border-bottom:1px solid var(--line)}
+.avatar{width:42px;height:42px;flex:none;border-radius:15px;background:linear-gradient(145deg,#8c7bea,#6754c7);display:grid;place-items:center;font-weight:800;font-size:17px;color:#fff;box-shadow:0 7px 18px #7664d833}
 .headcopy{min-width:0;flex:1}
-h1{font-size:1rem;margin:0 0 5px;font-weight:700;letter-spacing:.01em}
+h1{font-size:1rem;margin:0 0 4px;font-weight:760;letter-spacing:-.02em;color:var(--ink)}
 .sub{font-size:.8rem;color:var(--muted)}
-.status-sub{display:flex;align-items:center;gap:7px;min-width:0}
+.status-sub{display:flex;align-items:center;gap:8px;min-width:0}
 #topStatus{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.presence-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#8a969c}
-.presence-dot.online{background:#21c987;box-shadow:0 0 0 3px #21c98720}
-.presence-dot.offline{background:#839098}
-.presence-dot.waiting{background:#d6a84f}
+.presence-dot{width:8px;height:8px;flex:none;border-radius:50%;background:#b8b4c1}
+.presence-dot.online{background:#27b985;box-shadow:0 0 0 4px #27b98518}
+.presence-dot.offline{background:#aaa6b2}
+.presence-dot.waiting{background:#e0a54c}
 .headtools{display:flex;align-items:center;gap:10px}
-.sound{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
-.sound input{width:16px;height:16px;accent-color:var(--green)}
+.sound{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.sound input{width:16px;height:16px;accent-color:var(--purple)}
 main{flex:1;min-height:0;display:flex;flex-direction:column}
-.setup{width:min(520px,100%);margin:auto;padding:30px}
-.setup h2{font-size:1.55rem;line-height:1.2;margin:0 0 11px;letter-spacing:-.025em}
-.setup p{color:var(--muted);line-height:1.6;font-size:.94rem;margin:0}
-.fields{display:grid;gap:11px;margin:22px 0}
+.setup{width:100%;height:100%;margin:auto;display:grid;grid-template-columns:1.02fr .98fr;align-items:center;gap:32px;padding:clamp(26px,5vw,66px)}
+.welcome{padding:10px 0;max-width:440px}
+.eyebrow,.step{display:inline-flex;align-items:center;gap:7px;font-size:.7rem;font-weight:800;letter-spacing:.13em;color:var(--purple-dark)}
+.eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:#8b7ae8}
+.welcome h2{font-size:clamp(2rem,4.5vw,3.55rem);letter-spacing:-.055em;line-height:1.06;margin:22px 0 17px;color:#29263a;font-weight:780}
+.welcome p{font-size:1rem;line-height:1.75;color:#777486;max-width:400px;margin:0}
+.privacy-points{display:grid;gap:15px;margin-top:34px}
+.privacy-point{display:flex;align-items:center;gap:12px;color:#5f5b6d;font-size:.85rem}
+.point-icon{width:32px;height:32px;border:1px solid #eae5fa;background:#f6f3ff;border-radius:11px;display:grid;place-items:center;color:#7564ce;font-size:14px;flex:none}
+.setup-card{width:100%;max-width:430px;justify-self:end;background:#fff;border:1px solid #eeeaf2;border-radius:22px;padding:clamp(22px,3vw,32px);box-shadow:0 16px 46px #39304b0c}
+.card-head h3{font-size:1.32rem;letter-spacing:-.03em;margin:10px 0 6px;color:var(--ink)}
+.card-head p{font-size:.86rem;color:var(--muted);line-height:1.5;margin:0}
+.fields{display:grid;gap:12px;margin:24px 0 17px}
+.field-label{display:grid;gap:7px;font-size:.78rem;font-weight:700;color:#565266}
 .secret-field{position:relative;display:flex;align-items:center}
-.secret-field input{padding-right:82px}
-.secret-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:7px 10px;background:transparent;color:var(--muted);font-size:.82rem}
-.secret-toggle:hover{color:#e9edef}
-.secret-hint{color:var(--muted);font-size:.78rem;line-height:1.4;margin-top:-5px}
-input{min-width:0;width:100%;min-height:46px;background:#2a3942;color:#e9edef;border:1px solid #3a4a53;border-radius:12px;padding:13px 14px;font:inherit;outline:none}
-input:focus{border-color:var(--green);box-shadow:0 0 0 3px #00a88420}
-button{min-height:44px;border:0;border-radius:11px;padding:11px 16px;background:var(--green);color:#062b22;font:inherit;font-weight:700;cursor:pointer;touch-action:manipulation;transition:filter .15s ease,transform .15s ease}
-button:hover{filter:brightness(1.06)}
-button:active{transform:scale(.98)}
-button.secondary{background:#2a3942;color:#e9edef}
-button:disabled{opacity:.45;cursor:not-allowed}
+.secret-field input{padding-right:78px}
+.secret-toggle{position:absolute;right:7px;top:50%;transform:translateY(-50%);padding:7px 11px;background:transparent!important;color:#77738a!important;font-size:.78rem}
+.secret-toggle:hover{color:var(--purple-dark)!important}
+input{min-width:0;width:100%;min-height:48px;background:#fbfafc;color:#302d40;border:1px solid #e7e3ed;border-radius:12px;padding:13px 14px;font:inherit;font-size:16px;outline:none;transition:border-color .16s,box-shadow .16s}
+input::placeholder{color:#a7a3b1}
+input:focus{border-color:#9a8be9;box-shadow:0 0 0 4px #8d7ce91a;background:#fff}
+.secret-hint{color:#898596;font-size:.75rem;line-height:1.45;margin-top:-3px}
+button{min-height:45px;border:0;border-radius:12px;padding:11px 16px;background:var(--purple);color:#fff;font:inherit;font-weight:750;font-size:.86rem;cursor:pointer;touch-action:manipulation;transition:filter .15s ease,transform .15s ease,box-shadow .15s ease}
+button:hover{filter:brightness(1.04);box-shadow:0 5px 15px #7664d828}
+button:active{transform:scale(.985)}
+button.secondary{background:#f1eff7;color:#514b68}
+button.tertiary{background:transparent;color:#6f61c5;border:1px solid #e5e0f3}
+button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 .actions button{flex:1}
-.note{background:#18262d;color:#b8c5cb;padding:13px;border:1px solid #263840;border-radius:12px;font-size:.8rem;line-height:1.55;margin-top:18px}
+.note{display:flex;gap:10px;background:#f8f7fb;color:#777486;padding:13px;border:1px solid #eeeaf3;border-radius:13px;font-size:.75rem;line-height:1.55;margin-top:19px}
+.note-icon{color:#8a7cda;font-size:1rem}
 .hidden{display:none!important}
-.statusline{font-size:.83rem;color:var(--muted);margin:12px 0;min-height:20px}
-.share{margin-top:16px;background:#18262d;padding:12px;border-radius:12px;border:1px solid var(--line)}
-.share .actions{margin-top:9px}
-.share input{font-size:.78rem}
-.chatbg{flex:1;min-height:0;display:flex;flex-direction:column;background-color:#0b141a;background-image:radial-gradient(#ffffff08 1px,transparent 1px);background-size:18px 18px}
-.chatmeta{padding:9px 16px;background:#18262d;color:var(--muted);font-size:.76rem;text-align:center;border-bottom:1px solid #263840}
-.messages{flex:1;min-height:0;overflow:auto;padding:20px clamp(12px,5vw,54px);display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth;overscroll-behavior:contain}
-.msg{max-width:min(78%,560px);align-self:flex-start;background:linear-gradient(145deg,#25343b,#202c33);border:1px solid #ffffff08;border-radius:14px 14px 14px 4px;padding:10px 13px;box-shadow:0 2px 5px #0002;overflow-wrap:anywhere;white-space:pre-wrap}
-.msg.mine{align-self:flex-end;background:linear-gradient(145deg,#096b59,#075e50);border-color:#ffffff0c;border-radius:14px 14px 4px 14px}
-.msgbody{font-size:.94rem;line-height:1.5}
-.msgfoot{display:flex;justify-content:flex-end;align-items:center;gap:7px;color:#c1d0cc;font-size:.68rem;margin-top:5px}
-.tick{font-weight:800;letter-spacing:-.13em;color:#c1d0cc;font-size:.84rem}
-.tick.read{color:var(--blue)}
-.sender{font-size:.72rem;color:#7fd7c2;margin-bottom:4px;font-weight:650}
-.typing{height:23px;flex:none;padding:2px 20px 0;color:var(--muted);font-size:.76rem}
-.composer{display:flex;align-items:center;gap:9px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:#202c33;border-top:1px solid #2a3942}
-.composer input{border:1px solid #35464e;border-radius:24px;background:#2a3942;padding:12px 17px;min-height:48px;font-size:16px}
-.composer button{width:48px;height:48px;min-height:48px;flex:none;border-radius:50%;padding:0;font-size:1.15rem}
-.disconnect{font-size:.78rem;min-height:40px;padding:9px 13px}
-@media(max-width:640px){
+.statusline{font-size:.8rem;color:#746f81;margin:13px 0 0;min-height:20px;line-height:1.4}
+.recovery-link{margin-top:14px;text-align:center}
+.recovery-link button{min-height:35px;padding:6px 8px;font-size:.8rem;background:transparent;color:#7263c6}
+.restore-box{margin-top:12px;padding:14px;border:1px solid #e9e4f2;border-radius:14px;background:#fbfaff}
+.restore-box p{font-size:.77rem;color:#777486;line-height:1.45;margin:0 0 10px}
+.restore-box .actions{margin-top:9px}
+.restore-box button{width:100%}
+.chatbg{flex:1;min-height:0;display:flex;flex-direction:column;background:#fcfbfd}
+.chatmeta{padding:10px 18px;background:#faf9fc;color:#777486;font-size:.76rem;text-align:center;border-bottom:1px solid #eeeaf2}
+.chat-tools{display:flex;align-items:center;gap:9px;padding:10px 18px;border-bottom:1px solid #eeeaf2;background:#fff}
+.chat-tools button{min-height:36px;padding:8px 12px;font-size:.76rem;border-radius:10px}
+.chat-tools .sound{margin-left:auto}
+.share{display:flex;align-items:center;gap:10px;padding:10px 18px;background:#f8f6ff;border-bottom:1px solid #ebe6fa}
+.share-label{font-size:.75rem;color:#736b91;font-weight:700;white-space:nowrap}
+.share-line{display:flex;flex:1;min-width:0;gap:8px}
+.share input{min-height:38px;font-size:.75rem;background:#fff;padding:9px 11px}
+.share button{min-height:38px;padding:8px 12px;font-size:.76rem}
+.recovery-panel{padding:13px 18px;background:#fff9e9;border-bottom:1px solid #f3e7c6;color:#6e5d35}
+.recovery-panel p{font-size:.76rem;line-height:1.45;margin:5px 0 9px}
+.recovery-line{display:flex;align-items:center;gap:9px}
+.recovery-line code{overflow-wrap:anywhere;word-break:break-all;flex:1;color:#5c4e2c;font-size:.8rem}
+.recovery-line button{min-height:36px;padding:7px 12px;background:#8b743d;font-size:.74rem}
+.messages{flex:1;min-height:0;overflow:auto;padding:22px clamp(14px,5vw,62px);display:flex;flex-direction:column;gap:10px;scroll-behavior:smooth;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 0,#f8f5ff 0,transparent 48%),#fcfbfd}
+.msg{max-width:min(78%,560px);align-self:flex-start;background:#fff;border:1px solid #ece8f1;border-radius:17px 17px 17px 5px;padding:11px 14px;box-shadow:0 3px 12px #32264f08;overflow-wrap:anywhere;white-space:pre-wrap}
+.msg.mine{align-self:flex-end;background:linear-gradient(145deg,#8473e3,#6d5bd0);border-color:transparent;color:#fff;border-radius:17px 17px 5px 17px;box-shadow:0 5px 15px #7664d826}
+.msgbody{font-size:.94rem;line-height:1.52}
+.msgfoot{display:flex;justify-content:flex-end;align-items:center;gap:7px;color:#9691a0;font-size:.68rem;margin-top:5px}
+.msg.mine .msgfoot{color:#e4defd}
+.tick{font-weight:800;letter-spacing:-.13em;color:#d4d0dc;font-size:.84rem}
+.tick.read{color:#aee8ff}
+.sender{font-size:.72rem;color:#7765cb;margin-bottom:4px;font-weight:750}
+.typing{height:24px;flex:none;padding:2px 20px 0;color:#777486;font-size:.76rem;background:#fcfbfd}
+.composer{display:flex;align-items:center;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #eeeaf2}
+.composer input{border:1px solid #e7e3ed;border-radius:25px;background:#faf9fc;padding:12px 18px;min-height:49px;font-size:16px}
+.composer input:focus{background:#fff}
+.composer button{width:49px;height:49px;min-height:49px;flex:none;border-radius:50%;padding:0;font-size:1.15rem}
+.disconnect{font-size:.76rem;min-height:38px;padding:8px 13px}
+.empty-state{font-size:.85rem;color:#9691a0;text-align:center;margin:auto;max-width:260px;line-height:1.6}
+@media(max-width:720px){
  html,body{height:100%;min-height:100%;overflow:hidden}
- body{display:block;height:100dvh;min-height:100dvh;padding:0;background:#0b141a}
+ body{display:block;height:100dvh;min-height:100dvh;padding:0;background:#fff}
  .shell{width:100%;height:100dvh;min-height:0;border:0;border-radius:0;box-shadow:none}
- header{height:auto;min-height:72px;padding:calc(9px + env(safe-area-inset-top)) 13px 9px;gap:10px}
- .avatar{width:40px;height:40px;font-size:15px}
- h1{font-size:.96rem;margin-bottom:4px}
- .sub{font-size:.75rem}
+ header{height:auto;min-height:70px;padding:calc(9px + env(safe-area-inset-top)) 14px 9px;gap:10px}
+ .avatar{width:39px;height:39px;border-radius:13px;font-size:15px}
+ h1{font-size:.95rem;margin-bottom:4px}
+ .sub{font-size:.73rem}
  .headtools{gap:7px}
  .sound{font-size:.72rem;gap:4px}
  .sound input{width:17px;height:17px}
- .disconnect{padding:8px 10px;min-height:40px;font-size:.74rem}
+ .disconnect{padding:8px 11px;min-height:39px;font-size:.73rem}
  main{min-height:0}
- .setup{width:100%;height:100%;max-height:100%;overflow-y:auto;padding:26px 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column;justify-content:center}
- .setup h2{font-size:1.48rem}
- .setup p{font-size:.91rem}
- .fields{gap:10px;margin:20px 0}
+ .setup{display:flex;flex-direction:column;justify-content:flex-start;align-items:stretch;gap:18px;height:100%;overflow-y:auto;padding:28px 20px calc(24px + env(safe-area-inset-bottom))}
+ .welcome{padding:5px 0 0;max-width:none}
+ .welcome h2{font-size:2rem;margin:15px 0 10px;max-width:420px}
+ .welcome p{font-size:.88rem;line-height:1.58}
+ .privacy-points{display:flex;flex-wrap:wrap;gap:8px 13px;margin-top:17px}
+ .privacy-point{font-size:.73rem;gap:7px}
+ .point-icon{width:27px;height:27px;border-radius:9px}
+ .setup-card{max-width:none;justify-self:auto;padding:21px;border-radius:19px;box-shadow:0 9px 30px #39304b0b}
+ .card-head h3{font-size:1.2rem;margin-top:8px}
+ .fields{gap:10px;margin:18px 0 14px}
  input{min-height:49px;font-size:16px}
  .actions{flex-direction:column;gap:9px}
  .actions button{width:100%;min-height:49px;flex:1}
- .note{font-size:.78rem;margin-top:16px}
- .chatmeta{padding:8px 10px;font-size:.72rem}
+ .note{font-size:.73rem;margin-top:14px}
+ .chatmeta{padding:8px 10px;font-size:.71rem}
+ .chat-tools{gap:7px;padding:9px 10px;flex-wrap:wrap}
+ .chat-tools button{min-height:40px;padding:8px 10px;font-size:.72rem}
+ .chat-tools .sound{margin-left:auto}
+ .share{padding:9px 10px;align-items:flex-start;flex-direction:column;gap:7px}
+ .share-line{width:100%}
+ .share input{min-width:0}
+ .recovery-panel{padding:11px 12px}
+ .recovery-line{align-items:flex-start;flex-direction:column}
+ .recovery-line button{width:100%;min-height:42px}
  .messages{padding:14px 12px 10px;gap:8px}
- .msg{max-width:88%;padding:10px 12px;border-radius:13px 13px 13px 4px}
- .msg.mine{border-radius:13px 13px 4px 13px}
- .msgbody{font-size:.96rem;line-height:1.48}
+ .msg{max-width:88%;padding:10px 12px;border-radius:14px 14px 14px 5px}
+ .msg.mine{border-radius:14px 14px 5px 14px}
+ .msgbody{font-size:.95rem;line-height:1.48}
  .msgfoot{font-size:.68rem;margin-top:4px}
  .typing{height:22px;padding:2px 14px 0}
  .composer{gap:8px;padding:9px 10px calc(9px + env(safe-area-inset-bottom))}
@@ -110,24 +158,53 @@ button:disabled{opacity:.45;cursor:not-allowed}
  .headtools{gap:5px}
  .sound{font-size:.68rem}
  .disconnect{padding:7px 8px}
- .setup{padding-left:17px;padding-right:17px}
+ .setup{padding-left:16px;padding-right:16px}
+ .setup-card{padding:18px}
  .messages{padding-left:9px;padding-right:9px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
 </style></head>
 <body><div class="shell">
-<header><div class="avatar">SC</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">Waiting for the other person</span></div></div><div class="headtools"><label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
+<header><div class="avatar" aria-hidden="true">S</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="leave" class="secondary disconnect hidden">Leave chat</button></div></header>
 <main>
-<section id="setup" class="setup"><h2>Your private chat</h2><p>SecureChatBox is a private browser chat for two people. Create a room and share its link, or open the room link shared with you. Both people use the same secret phrase. Messages are encrypted in the browser before they reach the server.</p>
-<div class="fields"><input id="displayName" maxlength="32" placeholder="Your name" autocomplete="nickname"><div class="secret-field"><input id="secret" type="password" placeholder="Shared password" autocomplete="current-password" aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div><div id="secretHint" class="secret-hint">Any non-empty password works. A longer, unique passphrase is safer.</div></div>
-<div class="actions"><button id="create">Create private room</button><button id="connect" class="secondary">Join room</button></div>
-<div id="share" class="share hidden"><div class="sub">Share this private link with the other person:</div><div class="actions"><input id="shareUrl" readonly aria-label="Room link"><button id="copy">Copy</button></div></div>
-<div id="setupStatus" class="statusline" role="status">No push notifications are used.</div>
-<div class="note">Keep the secret phrase private. It is used to derive your encryption and room-access keys. The server stores encrypted message payloads so they can be delivered after reconnect. This is an early version, not an independently audited messenger.</div>
+<section id="setup" class="setup">
+ <div class="welcome">
+  <div class="eyebrow">PRIVATE SPACE · TWO PEOPLE</div>
+  <h2>Your space.<br>Just the two of you.</h2>
+  <p>A simple, private place to keep your conversation going. No groups, no public profiles—just one room shared by two people.</p>
+  <div class="privacy-points">
+   <div class="privacy-point"><span class="point-icon">⌁</span>Messages encrypted in your browser</div>
+   <div class="privacy-point"><span class="point-icon">↻</span>Pick up where you left off</div>
+   <div class="privacy-point"><span class="point-icon">♡</span>Made for two people</div>
+  </div>
+ </div>
+ <div class="setup-card">
+  <div class="card-head"><span class="step">START HERE</span><h3>Open your private chat</h3><p>Create a new room or join with the private link you received.</p></div>
+  <div class="fields">
+   <label class="field-label">Your name<input id="displayName" maxlength="32" placeholder="How should they see you?" autocomplete="nickname"></label>
+   <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" placeholder="Enter your shared password" autocomplete="current-password" aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
+   <div id="secretHint" class="secret-hint">Use the same phrase as the other person. A longer, unique phrase is safer.</div>
+  </div>
+  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join private chat</button></div>
+  <div class="recovery-link"><button type="button" id="showRecoveryForm">Already have a recovery code? Restore your chat</button></div>
+  <div id="restoreBox" class="restore-box hidden"><p>Enter the personal recovery code you saved earlier. You will still need your shared secret phrase to open the conversation.</p><input id="restoreCode" maxlength="100" placeholder="Paste your recovery code" autocomplete="off" spellcheck="false"><div class="actions"><button type="button" id="restoreChat">Find my chat</button></div></div>
+  <div id="setupStatus" class="statusline" role="status">Your private room is for two participants only.</div>
+  <div class="note"><span class="note-icon">♧</span><span>Save your personal recovery code after joining. It helps you return from another phone. Never share it with anyone.</span></div>
+ </div>
 </section>
-<section id="chatArea" class="chatbg hidden"><div class="chatmeta" id="roomMeta">Connecting securely…</div><div id="messages" class="messages" aria-live="polite"></div><div id="typing" class="typing"></div><form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Message" autocomplete="off" aria-label="Message"><button id="send" aria-label="Send" disabled>➤</button></form></section>
-</main></div>
-<script>
+<section id="chatArea" class="chatbg hidden">
+ <div class="chatmeta" id="roomMeta">Connecting securely…</div>
+ <div class="chat-tools">
+  <button id="toggleRecovery" class="tertiary" type="button">My recovery code</button>
+  <label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label>
+ </div>
+ <div id="share" class="share hidden"><span class="share-label">Private invite link</span><div class="share-line"><input id="shareUrl" readonly aria-label="Room link"><button id="copy" type="button">Copy link</button></div></div>
+ <div id="recoveryPanel" class="recovery-panel hidden"><strong id="recoveryState">Your personal recovery code</strong><p>Save this somewhere private. On another phone, find SecureChatBox, enter this code and then your shared secret phrase. Anyone with both can access this chat.</p><div class="recovery-line"><code id="recoveryCode"></code><button id="copyRecovery" type="button">Copy recovery code</button></div></div>
+ <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState">This is your private space. Send a hello when you are ready.</div></div>
+ <div id="typing" class="typing"></div>
+ <form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off" aria-label="Message"><button id="send" aria-label="Send" disabled>➤</button></form>
+</section>
+</main></div><script>
 const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false;
 const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map(),readSent=new Set();
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
@@ -148,7 +225,7 @@ function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classL
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
 function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
 function addBubble(id,senderId,obj,createdAt,status='sent'){
- if(rendered.has(id))return;rendered.add(id);const mine=senderId===participantId;const box=document.createElement('div');box.className='msg'+(mine?' mine':'');box.dataset.messageId=id;
+ if(rendered.has(id))return;rendered.add(id);const empty=$('emptyState');if(empty)empty.remove();const mine=senderId===participantId;const box=document.createElement('div');box.className='msg'+(mine?' mine':'');box.dataset.messageId=id;
  if(!mine){const sender=document.createElement('div');sender.className='sender';sender.textContent=obj.name||'Other participant';box.append(sender)}
  const body=document.createElement('div');body.className='msgbody';body.textContent=obj.text||'';box.append(body);
  const foot=document.createElement('div');foot.className='msgfoot';const tm=document.createElement('span');tm.textContent=timeLabel(createdAt||Date.now()/1000);foot.append(tm);
@@ -163,12 +240,17 @@ function chatIsActive(){return document.visibilityState==='visible'&&(typeof doc
 function markVisibleMessagesRead(){if(!chatIsActive())return;const viewport=$('messages').getBoundingClientRect();for(const [id,node] of messageNodes){if(node.classList.contains('mine')||readSent.has(id))continue;const rect=node.getBoundingClientRect();const visibleHeight=Math.max(0,Math.min(rect.bottom,viewport.bottom)-Math.max(rect.top,viewport.top));const visibleWidth=Math.max(0,Math.min(rect.right,viewport.right)-Math.max(rect.left,viewport.left));const denominator=Math.max(1,Math.min(rect.height,viewport.height));if(visibleHeight/denominator>=0.6&&visibleWidth>0)sendReceipt('read',id)}}
 function scheduleReadCheck(){if(readRefreshScheduled)return;readRefreshScheduled=true;requestAnimationFrame(()=>{readRefreshScheduled=false;markVisibleMessagesRead()})}
 function clearTimers(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}if(pingTimer){clearInterval(pingTimer);pingTimer=null}}
-function connectSocket(action,authToken){clearTimers();manualLeave=false;activeAction=action;const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}/ws/${roomId}`);setStatus(action==='create'?'Creating private room…':'Connecting…');showChat();$('send').disabled=true;
- ws.onopen=()=>{ws.send(JSON.stringify({type:'hello',action:activeAction,participant_id:participantId,name:$('displayName').value.trim(),auth_token:authToken}));pingTimer=setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},25000)};
+function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=false;activeAction=action;const protocol=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(`${protocol}://${location.host}/ws/${roomId}`);setStatus(action==='create'?'Creating private room…':'Connecting…');showChat();$('send').disabled=true;
+ ws.onopen=()=>{ws.send(JSON.stringify({type:'hello',action:activeAction,participant_id:participantId,name:$('displayName').value.trim(),auth_token:authToken,recovery_code:recoveryCode}));pingTimer=setInterval(()=>{if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'ping'}))},25000)};
  ws.onmessage=async ev=>{let packet;try{packet=JSON.parse(ev.data)}catch{return}
   if(packet.type==='ready'){
    connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);
    if(action==='create'||action==='join'){$('shareUrl').value=location.href;$('share').classList.remove('hidden')}
+   const savedRecovery=localStorage.getItem('securechat:recovery:'+roomId)||'';
+   $('recoveryCode').textContent=savedRecovery||'No recovery code is saved on this device.';
+   $('recoveryState').textContent=packet.recovery_saved?'Your personal recovery code':'Recovery code needs attention';
+   if(!packet.recovery_saved){$('recoveryPanel').classList.remove('hidden');$('recoveryState').textContent='This recovery code is not linked to this chat. Use the code you originally saved.'}
+   else if(!localStorage.getItem('securechat:recovery-shown:'+roomId)){$('recoveryPanel').classList.remove('hidden');localStorage.setItem('securechat:recovery-shown:'+roomId,'1')}
    for(const item of (packet.history||[])){await displayPacket(item)}
    $('roomMeta').textContent='End-to-end encrypted · messages are synced';scheduleReadCheck();return;
   }
@@ -183,17 +265,24 @@ function connectSocket(action,authToken){clearTimers();manualLeave=false;activeA
  ws.onclose=ev=>{connected=false;$('send').disabled=true;if(manualLeave)return;const reason=ev.reason||'Connection lost';setStatus('Reconnecting…');$('roomMeta').textContent=reason;
   if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent=reason;showSetup();setSetupStatus(reason);return}
   if(ev.code===4001){manualLeave=true;setStatus('Session opened elsewhere');$('roomMeta').textContent=reason;showSetup();setSetupStatus('This participant is already connected in another tab. Close that tab before reconnecting here.');return}
-  reconnectTimer=setTimeout(()=>{if(!manualLeave)connectSocket('join',authToken)},reconnectDelay);reconnectDelay=Math.min(30000,Math.round(reconnectDelay*1.8));
+  reconnectTimer=setTimeout(()=>{if(!manualLeave)connectSocket('join',authToken,recoveryCode)},reconnectDelay);reconnectDelay=Math.min(30000,Math.round(reconnectDelay*1.8));
  };
 }
 async function start(create){const name=$('displayName').value.trim(),pass=$('secret').value;if(!name){setSetupStatus('Enter your display name.');return}if(pass.length===0){setSetupStatus('Enter your shared password.');$('secret').focus();return}if(!window.crypto?.subtle){setSetupStatus('This browser does not support secure encryption.');return}unlockAudio();
  if(create){roomId=randomHex();participantId=randomHex();location.hash=roomId;localStorage.setItem(participantStorageKey(),participantId)}else{roomId=location.hash.slice(1)||localStorage.getItem('secureChatRoom');if(!validRoom(roomId)){setSetupStatus('Open the room link first, including its # room code.');return}participantId=localStorage.getItem(participantStorageKey());if(!participantId){participantId=randomHex();localStorage.setItem(participantStorageKey(),participantId)}}
  localStorage.setItem('secureChatRoom',roomId);localStorage.setItem('secureChatName',name);setSetupStatus('Preparing encryption…');
- try{const authToken=await deriveKeys(pass,roomId);$('messages').replaceChildren();rendered.clear();messageNodes.clear();messageStates.clear();readSent.clear();const action=create?'create':'join';connectSocket(action,authToken)}catch(e){setSetupStatus('Could not prepare secure chat: '+e.message)}
+ try{const authToken=await deriveKeys(pass,roomId);let recoveryCode=localStorage.getItem('securechat:recovery:'+roomId);if(!recoveryCode){recoveryCode=b64url(crypto.getRandomValues(new Uint8Array(32)));localStorage.setItem('securechat:recovery:'+roomId,recoveryCode)}$('messages').replaceChildren();rendered.clear();messageNodes.clear();messageStates.clear();readSent.clear();const action=create?'create':'join';connectSocket(action,authToken,recoveryCode)}catch(e){setSetupStatus('Could not prepare secure chat: '+e.message)}
 }
 const secretInput=$('secret'),toggleSecret=$('toggleSecret');toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
-$('displayName').value=localStorage.getItem('secureChatName')||'';$('create').onclick=()=>start(true);$('connect').onclick=()=>start(false);
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('shareUrl').value);setSetupStatus('Private link copied.')}catch(e){$('shareUrl').select();setSetupStatus('Select and copy the link.')}};
+$('displayName').value=localStorage.getItem('secureChatName')||'';
+$('create').onclick=()=>start(true);$('connect').onclick=()=>start(false);
+$('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
+async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
+$('restoreChat').onclick=restoreExistingChat;
+$('toggleRecovery').onclick=()=>{$('recoveryPanel').classList.toggle('hidden');if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
+$('copyRecovery').onclick=async()=>{const code=localStorage.getItem('securechat:recovery:'+roomId)||'';if(!code){$('recoveryState').textContent='No recovery code is available on this device.';return}try{await navigator.clipboard.writeText(code);$('recoveryState').textContent='Recovery code copied. Save it somewhere private.'}catch(e){$('recoveryState').textContent='Select the code above and copy it manually.'}};
+
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('shareUrl').value);$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy link',1600)}catch(e){$('shareUrl').select();setSetupStatus('Select and copy the link.')}};
 $('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
 $('message').addEventListener('input',()=>{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type:'typing',active:true}));clearTimeout(typingTimer);typingTimer=setTimeout(()=>ws&&ws.readyState===WebSocket.OPEN&&ws.send(JSON.stringify({type:'typing',active:false})),1200)}});
 document.addEventListener('visibilitychange',scheduleReadCheck);window.addEventListener('focus',scheduleReadCheck);window.addEventListener('pageshow',scheduleReadCheck);$('messages').addEventListener('scroll',scheduleReadCheck,{passive:true});
