@@ -1,4 +1,4 @@
-"""Two-person encrypted chat with SQLite-backed ciphertext history."""
+
 from __future__ import annotations
 
 import asyncio
