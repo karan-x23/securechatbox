@@ -290,23 +290,289 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
  .emoji-categories button{width:34px}
 }
 @media(prefers-reduced-motion:reduce){.emoji-picker{animation:none}}
+
+/* Soft, romantic premium theme — visual-only overrides. */
+:root{
+ --ink:#342a3b;
+ --muted:#877988;
+ --line:#eee3eb;
+ --purple:#93647f;
+ --purple-dark:#704b68;
+ --lav:#f5edf5;
+ --white:#fff;
+ color-scheme:light;
+}
+html,body{background:#faf5f7}
+body{
+ background:
+  radial-gradient(ellipse at 12% 7%,rgba(241,218,229,.78) 0,transparent 34%),
+  radial-gradient(ellipse at 91% 90%,rgba(225,218,241,.72) 0,transparent 36%),
+  linear-gradient(135deg,#fcf8f8 0%,#f8f5fa 52%,#fbf6f6 100%);
+}
+.shell{
+ width:min(100%,1080px);
+ border:1px solid rgba(235,220,231,.9);
+ border-radius:30px;
+ background:rgba(255,255,255,.97);
+ box-shadow:0 28px 90px rgba(77,48,74,.12),0 3px 14px rgba(77,48,74,.035);
+}
+header{
+ background:linear-gradient(105deg,#fff 0%,#fffafd 58%,#fcf7fb 100%);
+ border-bottom:1px solid #f0e7ee;
+}
+.avatar{
+ border-radius:17px;
+ background:linear-gradient(145deg,#d99ab5 0%,#a77b9f 52%,#80618c 100%);
+ color:#fff;
+ font-family:Georgia,serif;
+ font-size:25px;
+ font-weight:500;
+ box-shadow:0 8px 20px rgba(153,99,137,.24),inset 0 1px 0 rgba(255,255,255,.36);
+}
+h1{color:#382d3d;letter-spacing:-.025em}
+.sub{color:#958494}
+.presence-dot.online{background:#65ad91;box-shadow:0 0 0 4px rgba(101,173,145,.13)}
+.presence-dot.waiting{background:#d7a66e}
+.presence-dot.offline{background:#b9aab8}
+.setup{gap:clamp(28px,5vw,64px)}
+.welcome{position:relative;max-width:470px}
+.eyebrow,.step{color:#94677f;letter-spacing:.16em}
+.eyebrow:before{
+ content:"♡";
+ width:auto;height:auto;
+ border-radius:0;background:none;
+ font-size:15px;line-height:1;color:#bb8ca5;
+}
+.welcome h2{
+ color:#3a2d3c;
+ font-size:clamp(2.35rem,5vw,4.15rem);
+ letter-spacing:-.065em;
+ line-height:1.01;
+ margin:24px 0 19px;
+}
+.welcome h2 span{
+ color:#a36f8e;
+ font-family:Georgia,"Times New Roman",serif;
+ font-weight:500;
+ font-style:italic;
+ letter-spacing:-.07em;
+}
+.welcome p{
+ color:#827584;
+ max-width:390px;
+ font-size:.98rem;
+ line-height:1.82;
+}
+.privacy-points{gap:13px;margin-top:29px}
+.privacy-point{color:#6e6170;font-size:.84rem;letter-spacing:.002em}
+.point-icon{
+ width:35px;height:35px;border-radius:13px;
+ border:1px solid #f0e3ec;background:linear-gradient(145deg,#fff8fb,#f7eff6);
+ color:#a47791;font-size:15px;
+ box-shadow:0 4px 12px rgba(131,88,118,.045);
+}
+.welcome:after{
+ content:"a little note, just for you  ♡";
+ display:inline-flex;align-items:center;
+ margin:29px 0 0 1px;padding:11px 15px;
+ border:1px solid #f0e3eb;border-radius:999px;
+ background:rgba(255,255,255,.68);
+ color:#a17b91;font-family:Georgia,"Times New Roman",serif;
+ font-size:.84rem;font-style:italic;letter-spacing:.01em;
+ box-shadow:0 7px 20px rgba(123,82,112,.045);
+}
+.setup-card{
+ max-width:450px;
+ border:1px solid #f0e5ec;
+ border-radius:25px;
+ padding:clamp(24px,3.2vw,34px);
+ background:linear-gradient(155deg,#fff 0%,#fff 65%,#fdf8fb 100%);
+ box-shadow:0 18px 52px rgba(84,54,83,.075),0 2px 8px rgba(84,54,83,.025);
+}
+.card-head h3{color:#3d3041;font-size:1.38rem;letter-spacing:-.04em}
+.card-head p{color:#8d7e8e;line-height:1.65}
+.fields{gap:13px;margin:23px 0 18px}
+.field-label{color:#655567;font-size:.79rem;font-weight:720;gap:8px}
+input{
+ border-color:#eee4ec;
+ background:#fdfafd;
+ color:#403346;
+ border-radius:13px;
+ box-shadow:inset 0 1px 2px rgba(75,50,75,.018);
+}
+input::placeholder{color:#b4a6b3}
+input:focus{
+ border-color:#c79bb5;
+ box-shadow:0 0 0 4px rgba(192,139,169,.14);
+ background:#fff;
+}
+.secret-hint{color:#9b8b9a;font-size:.73rem;line-height:1.55}
+button{
+ border-radius:13px;
+ background:linear-gradient(135deg,#b47e9d 0%,#8e648a 100%);
+ box-shadow:0 7px 18px rgba(145,94,132,.18);
+}
+button:hover{filter:brightness(1.045);box-shadow:0 9px 22px rgba(145,94,132,.23)}
+button:active{transform:translateY(1px) scale(.99)}
+button.secondary{
+ background:#f5edf4;color:#795d77;border:1px solid #eee2ec;box-shadow:none;
+}
+button.secondary:hover{background:#f1e6f0;box-shadow:0 5px 14px rgba(122,83,119,.08)}
+button.tertiary{
+ color:#8c6482;border:1px solid #eadde7;background:#fffafd;box-shadow:none;
+}
+button:focus-visible,input:focus-visible{
+ outline:3px solid rgba(190,139,169,.42);outline-offset:2px;
+}
+.note{
+ border:1px solid #f0e5ec;
+ background:linear-gradient(110deg,#fcf6fa,#faf7fc);
+ color:#89798a;border-radius:15px;
+}
+.note-icon{color:#b17c9a}
+.statusline{color:#806e81;line-height:1.55}
+.recovery-link button{color:#956b88}
+.restore-box{
+ border:1px solid #eee2eb;background:#fdf9fc;border-radius:16px;
+}
+.restore-box p{color:#8c7b8c;line-height:1.6}
+.pair-entry>button{color:#956b88}
+.pair-code-form{
+ background:#fcf8fc;border-color:#efe3ed;border-radius:16px;
+}
+.pair-code-form p{color:#8c7b8c}
+.chatbg{background:#fff}
+.chatmeta{
+ background:linear-gradient(90deg,#fffafd,#fff);
+ color:#8b778a;border-bottom:1px solid #f0e7ef;
+}
+.chat-tools{background:#fff;border-bottom:1px solid #f0e7ef}
+#shareInvite{background:#f6edf4;color:#875e7b;border:1px solid #eddfeb}
+#leave{background:#faf6f9;color:#8a7b89}
+.invite-panel,.recovery-panel{
+ background:linear-gradient(110deg,#fdf8fb,#faf7fc);
+ border-color:#efe3ec;color:#634e65;
+}
+.invite-panel-head span,.recovery-panel p{color:#927f91}
+.pair-code-display{
+ border-color:#eddfeb;background:#fffafd;border-radius:15px;
+}
+.pair-code-display code{color:#956b88}
+.recovery-line code{background:#fff;border-color:#eee3ec;color:#6f5b70}
+.recovery-copy-status{color:#926b87}
+.messages{
+ background-color:#fbf8fb;
+ background-image:
+  radial-gradient(circle at 10% 15%,rgba(228,197,216,.22) 0 1px,transparent 1.5px),
+  radial-gradient(circle at 80% 65%,rgba(203,190,224,.2) 0 1px,transparent 1.5px),
+  linear-gradient(145deg,#fcf9fb,#f8f6fa);
+ background-size:34px 34px,42px 42px,auto;
+}
+.msg{
+ background:rgba(255,255,255,.96);
+ border:1px solid #efe6ee;
+ border-radius:19px 19px 19px 6px;
+ box-shadow:0 5px 17px rgba(81,53,82,.055);
+}
+.msg.mine{
+ background:linear-gradient(145deg,#bd8eaa 0%,#9b7297 58%,#896487 100%);
+ border-color:transparent;
+ color:#fff;
+ box-shadow:0 7px 18px rgba(139,91,131,.19);
+}
+.msgbody{line-height:1.62}
+.msgfoot{color:#a393a4}
+.msg.mine .msgfoot{color:#f7eaf2}
+.tick{color:#eadce8}
+.tick.read{color:#c1f2e3}
+.sender{color:#a06f8e}
+.empty-state .empty-icon{
+ background:linear-gradient(145deg,#f8eaf1,#eee8f7);
+ color:#a87996;
+ box-shadow:0 8px 20px rgba(151,105,143,.1);
+}
+.empty-state strong{color:#59465a}
+.empty-state span{color:#978697;line-height:1.7}
+.typing{background:#fbf8fb;color:#927e91}
+.composer{
+ background:linear-gradient(100deg,#fff,#fffafd);
+ border-top:1px solid #f0e7ef;
+}
+.composer input{
+ background:#fcf8fb;border-color:#eee4ec;
+}
+.composer input:focus{background:#fff}
+.composer button{
+ background:linear-gradient(145deg,#bd8eaa,#92688f);
+ box-shadow:0 7px 17px rgba(141,91,132,.22);
+}
+.emoji-picker{
+ border:1px solid #eedfe9;
+ background:rgba(255,252,254,.98);
+ box-shadow:0 22px 60px rgba(76,48,74,.18);
+}
+.emoji-picker-top strong,.emoji-section-label{color:#604b60}
+.emoji-search-wrap input{background:#fbf7fa;border-color:#eee3eb}
+.emoji-categories button{background:#f6edf4;color:#946c89;box-shadow:none}
+.emoji-categories button.active{background:#eadbe9;color:#714e70}
+.emoji-choice:hover{background:#f5e9f1}
+@media(max-width:720px){
+ body{background:#faf6f8}
+ .shell{border-radius:0}
+ header{
+  background:linear-gradient(105deg,#fff 0%,#fffafd 65%,#fcf6fb 100%);
+  border-bottom:1px solid #f0e7ef;
+ }
+ .setup{gap:15px;padding:22px 18px calc(22px + env(safe-area-inset-bottom))}
+ .welcome{padding:3px 0 0}
+ .welcome h2{font-size:2.12rem;line-height:1.02;margin:13px 0 10px}
+ .welcome p{font-size:.86rem;line-height:1.58;max-width:480px}
+ .privacy-points{gap:8px 11px;margin-top:14px}
+ .privacy-point{font-size:.72rem;gap:7px}
+ .point-icon{width:29px;height:29px;border-radius:11px}
+ .welcome:after{margin-top:14px;padding:8px 12px;font-size:.77rem}
+ .setup-card{padding:19px;border-radius:20px}
+ .card-head h3{font-size:1.2rem;margin-top:8px}
+ .card-head p{font-size:.81rem}
+ .fields{gap:9px;margin:15px 0 13px}
+ .field-label{gap:6px;font-size:.76rem}
+ input{min-height:46px;padding:11px 12px}
+ .secret-field input{padding-right:76px}
+ .actions{gap:8px}
+ .actions button{min-height:46px}
+ .note{padding:10px 12px;font-size:.71rem;line-height:1.45}
+ .messages{background-size:30px 30px,38px 38px,auto}
+ .msg{border-radius:16px 16px 16px 5px}
+ .msg.mine{border-radius:16px 16px 5px 16px}
+ .composer{background:#fff}
+ .composer input{background:#fcf8fb}
+}
+@media(max-width:380px){
+ .setup{padding-left:14px;padding-right:14px}
+ .welcome h2{font-size:1.92rem}
+ .setup-card{padding:17px}
+}
+@media(prefers-reduced-motion:reduce){
+ .msg{animation:none}
+}
+
 </style></head>
 <body><div class="shell">
-<header><div class="avatar" aria-hidden="true">S</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="shareInvite" class="secondary disconnect hidden" type="button">↗ Invite</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
+<header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="shareInvite" class="secondary disconnect hidden" type="button">↗ Invite</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
 <main>
 <section id="setup" class="setup">
  <div class="welcome">
-  <div class="eyebrow">PRIVATE SPACE · TWO PEOPLE</div>
-  <h2>Your space.<br>Just the two of you.</h2>
-  <p>A simple, private place to keep your conversation going. No groups, no public profiles—just one room shared by two people.</p>
+  <div class="eyebrow">A PRIVATE LITTLE CORNER</div>
+  <h2>A little space.<br><span>Just for us.</span></h2>
+  <p>Your own quiet corner to talk, share little moments, and stay close. Just the two of you, in a space that feels like yours.</p>
   <div class="privacy-points">
-   <div class="privacy-point"><span class="point-icon">⌁</span>Messages encrypted in your browser</div>
-   <div class="privacy-point"><span class="point-icon">↻</span>Pick up where you left off</div>
-   <div class="privacy-point"><span class="point-icon">♡</span>Made for two people</div>
+   <div class="privacy-point"><span class="point-icon">✧</span>Private conversations, by design</div>
+   <div class="privacy-point"><span class="point-icon">♡</span>Little moments stay together</div>
+   <div class="privacy-point"><span class="point-icon">☁</span>A calm space, just for you</div>
   </div>
  </div>
  <div class="setup-card">
-  <div class="card-head"><span class="step">PRIVATE MESSAGING</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Create a room with a name, or join an existing room using the same room name and shared password.</p></div>
+  <div class="card-head"><span class="step">MADE FOR TWO</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Create a room with a name, or join an existing room using the same room name and shared password.</p></div>
   <div class="fields">
    <label class="field-label">Room name (same on both phones)<input id="roomName" maxlength="40" placeholder="e.g. Karan Private Chat" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="roomNameHint"></label>
    <div id="roomNameHint" class="secret-hint">Create a room using this name, then the other person enters the exact same room name and shared password.</div>
@@ -343,7 +609,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
  </div>
  
  <div id="recoveryPanel" class="recovery-panel hidden"><div class="recovery-heading"><strong id="recoveryState">Your personal recovery code</strong><button id="closeRecovery" class="recovery-close" type="button" aria-label="Close recovery panel">×</button></div><p>Keep a personal backup so you can restore this chat on another phone. Your shared secret phrase is still required to read messages.</p><div class="recovery-line"><code id="recoveryCode" class="hidden"></code><button id="revealRecovery" class="secondary" type="button">Show code</button><button id="copyRecovery" type="button">Copy code</button></div><div id="recoveryCopyStatus" class="recovery-copy-status" role="status"></div></div>
- <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">♡</div><strong>Your private chat is ready</strong><span>Tap Invite in the top bar and send the invite to your person. Once they join with the same secret phrase, your conversation starts here.</span></div></div>
+ <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">♡</div><strong>Your little space is ready</strong><span>When your person joins, this is where the little conversations, smiles and everyday moments begin.</span></div></div>
  <div id="typing" class="typing"></div>
  <div id="emojiPicker" class="emoji-picker hidden" role="dialog" aria-label="Choose an emoji">
  <div class="emoji-picker-top"><strong>Emojis</strong><button type="button" id="closeEmoji" class="emoji-close" aria-label="Close emoji picker">×</button></div>
