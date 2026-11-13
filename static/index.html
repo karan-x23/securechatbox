@@ -526,13 +526,13 @@ async function resolveRoomIdByName(roomName){
  if(!validRoom(result.room_id))throw new Error('The server returned an invalid room identity. Please refresh and try again.');
  return result.room_id;
 }
-async function start(create,forceInvite=false){
+async function start(create){
  const name=$('displayName').value.trim(),pass=$('secret').value,roomName=$('roomName').value.trim();
  if(!name){setSetupStatus('Enter your display name.');$('displayName').focus();return}
  if(pass.length===0){setSetupStatus('Enter your shared password.');$('secret').focus();return}
  if(!window.crypto?.subtle){setSetupStatus('This browser does not support secure encryption.');return}
  const inviteId=location.hash.slice(1);
- const useNamedRoom=create||(!forceInvite&&roomName.length>0);
+ const useNamedRoom=create||roomName.length>0;
  if(!create&&!useNamedRoom&&!validRoom(inviteId)){
   setSetupStatus('Enter the room name shared by the creator, or open their private invite link.');
   $('roomName').focus();
@@ -549,6 +549,7 @@ async function start(create,forceInvite=false){
   roomId=useNamedRoom?await resolveRoomIdByName(roomName):inviteId;
   if(create){
    participantId=randomHex();
+   localStorage.setItem(participantStorageKey(),participantId);
   }else{
    participantId=localStorage.getItem(participantStorageKey());
    if(!participantId){participantId=randomHex();localStorage.setItem(participantStorageKey(),participantId)}
@@ -616,7 +617,8 @@ async function joinUsingPairCode(){
   roomId=data.room_id;location.hash=roomId;localStorage.setItem('secureChatRoom',roomId);
   $('pairCodeInput').value=formatPairCode(code);$('pairCodeForm').classList.add('hidden');configureInviteMode();
   $('setupStatus').textContent='Pairing code matched. Connecting to the same private room…';
-  await start(false,true);
+  $('roomName').value='';
+  await start(false);
  }catch(e){$('setupStatus').textContent=e.message}
  finally{$('joinByPairCode').disabled=false}
 }
