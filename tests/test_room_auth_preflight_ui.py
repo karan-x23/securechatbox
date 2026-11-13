@@ -11,7 +11,7 @@ class RoomAuthPreflightUiTests(unittest.TestCase):
         self.assertIn("fetch('/api/rooms/verify'", self.html)
         self.assertIn("Checking the shared password", self.html)
         self.assertIn("Password verified. Connecting securely", self.html)
-        self.assertIn("The pairing code found the room, but the shared password does not match", self.html)
+        self.assertIn("The pairing code is correct, but this password does not match the room", self.html)
 
     def test_pairing_code_still_uses_room_lookup_then_normal_join(self):
         self.assertIn("fetch('/api/rooms/resolve'", self.html)

@@ -309,8 +309,8 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
   <div class="card-head"><span class="step">PRIVATE MESSAGING</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Start a room once, then send its invite link to the one person you want to chat with.</p></div>
   <div class="fields">
    <label class="field-label">Your name<input id="displayName" maxlength="32" placeholder="How should they see you?" autocomplete="nickname"></label>
-   <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" placeholder="Enter your shared password" autocomplete="current-password" aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
-   <div id="secretHint" class="secret-hint">Use the same phrase as the other person. A longer, unique phrase is safer.</div>
+   <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" name="securechat-room-shared-phrase" placeholder="Enter your shared password" autocomplete="new-password" autocapitalize="off" spellcheck="false" readonly aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
+   <div id="secretHint" class="secret-hint">Use the exact same phrase on both phones. Saved passwords are not used automatically. Capital letters and spaces matter.</div>
   </div>
   <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with invite link</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
   <div class="pair-entry">
@@ -506,7 +506,7 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
  };
  socket.onerror=()=>{if(ws===socket){setStatus('Connection interrupted');$('roomMeta').textContent='The secure connection could not be completed. Check your network and retry.'}};
  socket.onclose=ev=>{if(ws!==socket)return;connected=false;$('send').disabled=true;if(manualLeave)return;if(backgroundPaused){setStatus('Offline');$('roomMeta').textContent='You are away. You will be online again when you return.';return;}const reason=ev.reason||'Connection lost';
-  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The pairing code found the room, but the shared password does not match. Check the exact password with the room creator.':reason.includes('Room already exists')?'This room already exists. Please use Join, not Create.':reason.includes('two participants')?'This private room already has two participants. Ask the creator for a new room.':reason.includes('Room not found')?'This private room could not be found. Ask the creator for a fresh pairing code.':reason;setSetupStatus(msg);return}
+  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The pairing code is correct, but this password does not match the room. Your browser may have filled a saved password. Tap Show, clear the field, and type the creator’s exact shared phrase yourself. Capital letters and spaces must match.':reason.includes('Room already exists')?'This room already exists. Please use Join, not Create.':reason.includes('two participants')?'This private room already has two participants. Ask the creator for a new room.':reason.includes('Room not found')?'This private room could not be found. Ask the creator for a fresh pairing code.':reason;setSetupStatus(msg);return}
   if(ev.code===4001){manualLeave=true;setStatus('Session opened on another device');$('roomMeta').textContent='This participant is already active elsewhere.';showSetup();setSetupStatus('This recovery identity is already connected on another device. Close the other session before reconnecting here.');return}
   setStatus('Reconnecting…');$('roomMeta').textContent='Connection dropped. Trying to reconnect…';
   reconnectTimer=setTimeout(()=>{if(!manualLeave)connectSocket('join',authToken,recoveryCode)},reconnectDelay);reconnectDelay=Math.min(30000,Math.round(reconnectDelay*1.8));
@@ -529,9 +529,15 @@ async function start(create){const name=$('displayName').value.trim(),pass=$('se
   const action=create?'create':'join';setSetupStatus('Password verified. Connecting securely…');connectSocket(action,authToken,recoveryCode)
  }catch(e){showSetup();setSetupStatus(e.message||'Could not prepare secure chat.')}
 }
-const secretInput=$('secret'),toggleSecret=$('toggleSecret');toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
+const secretInput=$('secret'),toggleSecret=$('toggleSecret');secretInput.addEventListener('focus',()=>secretInput.removeAttribute('readonly'),{once:true});toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
 $('displayName').value=localStorage.getItem('secureChatName')||'';
-$('create').onclick=()=>start(true);$('connect').onclick=()=>start(false);
+function prepareSharedPhraseMode(mode){
+ const field=$('secret');
+ field.setAttribute('autocomplete',mode==='create'?'new-password':'off');
+ field.setAttribute('name',mode==='create'?'securechat-new-room-phrase':'securechat-join-room-phrase');
+}
+$('create').onclick=()=>{prepareSharedPhraseMode('create');start(true)};
+$('connect').onclick=()=>{prepareSharedPhraseMode('join');start(false)};
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
 async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
@@ -562,7 +568,7 @@ async function joinUsingPairCode(){
  }catch(e){$('setupStatus').textContent=e.message}
  finally{$('joinByPairCode').disabled=false}
 }
-$('joinByPairCode').onclick=joinUsingPairCode;
+$('joinByPairCode').onclick=()=>{ prepareSharedPhraseMode('join');joinUsingPairCode() };
 $('pairCodeInput').addEventListener('input',()=>{$('pairCodeInput').value=normalizePairCode($('pairCodeInput').value).slice(0,16).replace(/(.{4})(?=.)/g,'$1-')});
 $('emojiToggle').onclick=()=>setEmojiPicker($('emojiPicker').classList.contains('hidden'));
 $('closeEmoji').onclick=()=>setEmojiPicker(false);

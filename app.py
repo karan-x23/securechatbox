@@ -227,7 +227,10 @@ async def startup() -> None:
 
 @app.get("/")
 async def home() -> FileResponse:
-    return FileResponse("static/index.html")
+    return FileResponse(
+        "static/index.html",
+        headers={"Cache-Control": "no-store, max-age=0", "Pragma": "no-cache"},
+    )
 
 
 @app.get("/health")
