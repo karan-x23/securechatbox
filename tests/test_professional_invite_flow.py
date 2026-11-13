@@ -14,7 +14,7 @@ class ProfessionalInviteFlowTests(unittest.TestCase):
         self.assertIn("Do not create a new room", self.html)
 
     def test_invite_share_explains_same_link_and_secret_phrase(self):
-        self.assertIn("Join my private chat using the same shared secret phrase.", self.html)
+        self.assertIn("Join my SecureChatBox private chat. Pairing code:", self.html)
         self.assertIn("same shared secret phrase", self.html)
         self.assertIn("navigator.share", self.html)
 

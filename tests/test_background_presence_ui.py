@@ -23,7 +23,7 @@ class BackgroundPresenceUiTests(unittest.TestCase):
         self.assertNotIn('id="shareUrl"', self.html)
         self.assertNotIn('id="share"', self.html)
         self.assertIn('id="shareInvite"', self.html)
-        self.assertIn("const url=location.href", self.html)
+        self.assertIn("const text='Join my SecureChatBox private chat.", self.html)
         self.assertIn("navigator.share", self.html)
 
     def test_messaging_controls_and_responsive_polish_remain(self):
