@@ -556,9 +556,106 @@ button:focus-visible,input:focus-visible{
  .msg{animation:none}
 }
 
+
+/* Discreet chat actions and a softer, more intimate conversation view */
+.shell{position:relative}
+#chatMenuToggle{
+ width:42px;height:42px;min-height:42px;flex:none;padding:0;border-radius:50%;
+ display:grid;place-items:center;background:#f8eef4;color:#875f7a;
+ border:1px solid #efdfeb;box-shadow:none;font-size:1.35rem;letter-spacing:.08em;line-height:1;
+}
+#chatMenuToggle:hover{background:#f2e5ee;box-shadow:0 5px 14px rgba(132,88,119,.1)}
+#chatMenuToggle:focus-visible{outline:3px solid rgba(190,139,169,.38);outline-offset:3px}
+.chat-menu{
+ position:absolute;top:72px;right:22px;z-index:50;width:min(258px,calc(100vw - 28px));
+ display:grid;gap:4px;padding:8px;border:1px solid #eee0e9;border-radius:18px;
+ background:rgba(255,252,254,.97);backdrop-filter:blur(18px);
+ box-shadow:0 18px 48px rgba(73,48,70,.16);
+}
+.chat-menu .menu-item{
+ width:100%;min-height:44px;display:flex;align-items:center;gap:12px;
+ padding:10px 12px;text-align:left;border:0;border-radius:12px;
+ background:transparent;color:#72576d;box-shadow:none;font-size:.84rem;font-weight:680;
+}
+.chat-menu .menu-item span{flex:1}
+.chat-menu .menu-item:hover{background:#f8edf4;box-shadow:none}
+.chat-menu .menu-sound{
+ min-height:43px;margin-top:3px;padding:9px 12px;border-top:1px solid #f0e6ed;
+ color:#89788a;font-size:.8rem;cursor:pointer;
+}
+.chat-menu .menu-sound input{width:16px;height:16px;min-height:auto;accent-color:#a87996}
+.chatmeta{
+ min-height:39px;display:flex;align-items:center;justify-content:center;gap:7px;
+ background:linear-gradient(90deg,#fffafd,#fff 50%,#fffafd);
+ color:#927f90;font-size:.73rem;font-weight:560;
+}
+.chatmeta:before{content:"♡";color:#bb8ba6;font-size:.88rem}
+.messages{
+ background:
+  radial-gradient(ellipse at 12% 0%,rgba(245,225,236,.58),transparent 38%),
+  radial-gradient(ellipse at 92% 100%,rgba(232,226,244,.62),transparent 42%),
+  linear-gradient(145deg,#fcf9fb,#faf8fc 55%,#fbf8fa);
+ background-size:cover;
+ padding:30px clamp(16px,6vw,82px) 22px;
+ gap:14px;
+}
+.msg{
+ max-width:min(74%,620px);padding:13px 17px;
+ border:1px solid rgba(239,228,237,.95);
+ border-radius:20px 20px 20px 7px;
+ background:rgba(255,255,255,.94);
+ box-shadow:0 7px 20px rgba(92,64,88,.055);
+}
+.msg.mine{
+ border-radius:20px 20px 7px 20px;
+ background:linear-gradient(145deg,#bd8fae 0%,#a77e9e 54%,#906b91 100%);
+ box-shadow:0 8px 20px rgba(142,95,132,.18);
+}
+.msgbody{font-size:.97rem;line-height:1.62;letter-spacing:.002em}
+.msgfoot{font-size:.68rem;margin-top:8px}
+.sender{font-size:.72rem;letter-spacing:.015em}
+.typing{padding-left:clamp(16px,6vw,82px);background:#fbf8fb;color:#987f93}
+.composer{
+ gap:10px;padding:13px 18px calc(13px + env(safe-area-inset-bottom));
+ background:rgba(255,253,254,.98);border-top:1px solid #f0e6ed;
+}
+.composer input{
+ min-height:53px;border-radius:999px;padding:13px 19px;
+ background:#fbf7fa;border-color:#efe4ed;
+ box-shadow:inset 0 1px 2px rgba(96,67,89,.025);
+}
+.composer input:focus{border-color:#c49bb4;box-shadow:0 0 0 4px rgba(192,139,169,.13)}
+.composer #emojiToggle{
+ width:43px;height:43px;min-height:43px;padding:0;border-radius:50%;
+ background:#f8eef4;color:#9a718b;box-shadow:none;font-size:1.12rem;
+}
+.composer #emojiToggle:hover{background:#f2e5ee;box-shadow:none}
+.composer #send{
+ width:52px;height:52px;min-height:52px;border-radius:50%;
+ background:linear-gradient(145deg,#bd8eaa,#91698f);
+ box-shadow:0 7px 17px rgba(141,91,132,.21);
+}
+.empty-state .empty-icon{width:62px;height:62px;border-radius:22px}
+@media(max-width:720px){
+ #chatMenuToggle{width:39px;height:39px;min-height:39px}
+ .chat-menu{top:calc(62px + env(safe-area-inset-top));right:10px;width:min(252px,calc(100vw - 20px))}
+ .chatmeta{min-height:37px;padding:7px 10px;font-size:.69rem}
+ .messages{padding:21px 13px 14px;gap:11px}
+ .msg{max-width:87%;padding:11px 14px}
+ .msgbody{font-size:.95rem;line-height:1.55}
+ .composer{gap:8px;padding:9px 11px calc(9px + env(safe-area-inset-bottom))}
+ .composer input{min-height:49px;padding:12px 16px}
+ .composer #emojiToggle{width:40px;height:40px;min-height:40px}
+ .composer #send{width:49px;height:49px;min-height:49px}
+}
+@media(prefers-reduced-motion:reduce){
+ .chat-menu,.msg,.composer button{transition:none!important;animation:none!important}
+}
+
 </style></head>
 <body><div class="shell">
-<header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="shareInvite" class="secondary disconnect hidden" type="button">↗ Invite</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
+<header><div class="avatar" aria-hidden="true">♡</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="chatMenuToggle" class="chat-menu-toggle hidden" type="button" aria-label="More chat options" aria-haspopup="menu" aria-controls="chatMenu" aria-expanded="false" title="More options">···</button><button id="leave" class="secondary disconnect hidden">Leave</button></div></header>
+<div id="chatMenu" class="chat-menu hidden" role="menu" aria-label="Chat options"><button id="shareInvite" class="menu-item hidden" type="button" role="menuitem">↗ <span>Invite your person</span></button><button id="toggleRecovery" class="menu-item" type="button" role="menuitem">♡ <span>My recovery code</span></button><label class="sound menu-sound"><input id="soundOn" type="checkbox" checked> <span>Sound alerts</span></label></div>
 <main>
 <section id="setup" class="setup">
  <div class="welcome">
@@ -597,11 +694,7 @@ button:focus-visible,input:focus-visible{
 </section>
 <section id="chatArea" class="chatbg hidden">
  <div class="chatmeta" id="roomMeta">Connecting securely…</div>
- <div class="chat-tools">
-  <button id="toggleRecovery" class="tertiary" type="button">My recovery code</button>
-  <label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label>
- </div>
- <div id="invitePanel" class="invite-panel hidden">
+  <div id="invitePanel" class="invite-panel hidden">
   <div class="invite-panel-head"><div><strong>Invite your person</strong><span>Share this code so they can find the same private room.</span></div><button id="closeInvitePanel" class="invite-close" type="button" aria-label="Close invite panel">×</button></div>
   <div class="pair-code-display"><code id="pairCodeDisplay">•••• •••• •••• ••••</code><button id="copyPairCode" type="button">Copy code</button></div>
   <p>They can search for SecureChatBox, choose <strong>Join without a link</strong>, enter this code and use the same shared secret phrase.</p>
@@ -725,8 +818,8 @@ function configureInviteMode(){
   hint.classList.add('hidden');
  }
 }
-function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('message').placeholder='Write a message…' }
-function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('shareInvite').classList.add('hidden');$('invitePanel').classList.add('hidden') }
+function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('chatMenuToggle').classList.remove('hidden');$('message').placeholder='Write a message…' }
+function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('chatMenuToggle').classList.add('hidden');$('chatMenu').classList.add('hidden');$('chatMenuToggle').setAttribute('aria-expanded','false');$('shareInvite').classList.add('hidden');$('invitePanel').classList.add('hidden');$('recoveryPanel').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
 function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
 function addBubble(id,senderId,obj,createdAt,status='sent'){
@@ -860,12 +953,16 @@ $('connect').onclick=()=>{prepareSharedPhraseMode('join');start(false)};
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
 async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;$('roomName').value='';localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
-$('toggleRecovery').onclick=()=>{$('recoveryPanel').classList.toggle('hidden');if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
+function closeChatMenu(){ $('chatMenu').classList.add('hidden');$('chatMenuToggle').setAttribute('aria-expanded','false') }
+$('chatMenuToggle').onclick=()=>{const open=$('chatMenu').classList.contains('hidden');$('chatMenu').classList.toggle('hidden',!open);$('chatMenuToggle').setAttribute('aria-expanded',String(open))};
+document.addEventListener('click',e=>{if(!$('chatMenu').classList.contains('hidden')&&!$('chatMenu').contains(e.target)&&e.target!==$('chatMenuToggle'))closeChatMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('chatMenu').classList.contains('hidden')){closeChatMenu();$('chatMenuToggle').focus()}});
+$('toggleRecovery').onclick=()=>{$('recoveryPanel').classList.toggle('hidden');closeChatMenu();if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
 $('closeRecovery').onclick=()=>$('recoveryPanel').classList.add('hidden');
 $('revealRecovery').onclick=()=>{const code=$('recoveryCode');const show=code.classList.contains('hidden');code.classList.toggle('hidden',!show);$('revealRecovery').textContent=show?'Hide code':'Show code'};
 $('copyRecovery').onclick=async()=>{const code=localStorage.getItem('securechat:recovery:'+roomId)||'';if(!code){$('recoveryCopyStatus').textContent='No recovery code is available on this device.';return}try{await navigator.clipboard.writeText(code);$('recoveryCopyStatus').textContent='Copied. Store it somewhere private.'}catch(e){$('recoveryCode').classList.remove('hidden');$('revealRecovery').textContent='Hide code';$('recoveryCopyStatus').textContent='Clipboard unavailable. Select and copy the code above.'}};
 
-$('shareInvite').onclick=()=>{$('invitePanel').classList.toggle('hidden');if(!$('invitePanel').classList.contains('hidden'))$('pairCodeDisplay').scrollIntoView({behavior:'smooth',block:'nearest'})};
+$('shareInvite').onclick=()=>{$('invitePanel').classList.toggle('hidden');closeChatMenu();if(!$('invitePanel').classList.contains('hidden'))$('pairCodeDisplay').scrollIntoView({behavior:'smooth',block:'nearest'})};
 $('closeInvitePanel').onclick=()=>$('invitePanel').classList.add('hidden');
 $('copyPairCode').onclick=async()=>{if(!activePairCode){$('roomMeta').textContent='Pairing code is not available yet.';return}try{await navigator.clipboard.writeText(formatPairCode(activePairCode));$('copyPairCode').textContent='Copied';setTimeout(()=>$('copyPairCode').textContent='Copy code',1500)}catch(e){$('roomMeta').textContent='Select the pairing code to copy it.'}};
 $('sharePairCode').onclick=async()=>{if(!activePairCode)return;const code=formatPairCode(activePairCode);const text='Join my SecureChatBox private chat. Pairing code: '+code+'. Open SecureChatBox, choose “Join without a link”, enter this code and use our shared secret phrase.';try{if(navigator.share){await navigator.share({title:'SecureChatBox pairing code',text})}else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(text);$('roomMeta').textContent='Pairing instructions copied.'}else{window.prompt('Copy these pairing instructions',text)}}catch(e){if(e&&e.name!=='AbortError')$('roomMeta').textContent='Could not open the share menu.'}};
