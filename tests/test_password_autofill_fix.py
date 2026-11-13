@@ -14,14 +14,21 @@ class PasswordAutofillFixTests(unittest.TestCase):
     def test_create_and_join_set_distinct_autocomplete_modes(self):
         self.assertIn("function prepareSharedPhrase(mode)", self.html)
         self.assertIn("mode==='create'?'new-password':'off'", self.html)
-        self.assertIn("field.value=''", self.html)
-        self.assertIn("prepareSharedPhrase('create')", self.html)
-        self.assertIn("prepareSharedPhrase('join')", self.html)
+        self.assertIn("prepareSharedPhraseMode('create');start(true)", self.html)
+        self.assertIn("prepareSharedPhraseMode('join');start(false)", self.html)
+        self.assertIn("prepareSharedPhraseMode('join');joinUsingPairCode()", self.html)
         self.assertIn("securechat-pair-join-phrase", self.html)
 
     def test_mismatch_error_explains_saved_password_autofill(self):
         self.assertIn("Your browser may have filled a saved password", self.html)
         self.assertIn("type the creator’s exact shared phrase yourself", self.html)
+
+    def test_create_button_still_starts_room_creation(self):
+        self.assertIn("prepareSharedPhraseMode('create');start(true)", self.html)
+        self.assertIn("prepareSharedPhraseMode('join');start(false)", self.html)
+        self.assertIn("prepareSharedPhraseMode('join');joinUsingPairCode()", self.html)
+        self.assertIn('readonly', self.html)
+        self.assertIn("secretInput.addEventListener('focus'", self.html)
 
     def test_pairing_and_chat_controls_remain(self):
         self.assertIn("fetch('/api/rooms/resolve'", self.html)

@@ -309,7 +309,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
   <div class="card-head"><span class="step">PRIVATE MESSAGING</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Start a room once, then send its invite link to the one person you want to chat with.</p></div>
   <div class="fields">
    <label class="field-label">Your name<input id="displayName" maxlength="32" placeholder="How should they see you?" autocomplete="nickname"></label>
-   <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" name="securechat-room-shared-phrase" placeholder="Enter your shared password" autocomplete="new-password" autocapitalize="off" spellcheck="false" aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
+   <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" name="securechat-room-shared-phrase" placeholder="Enter your shared password" autocomplete="new-password" autocapitalize="off" spellcheck="false" readonly aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
    <div id="secretHint" class="secret-hint">Use the exact same phrase on both phones. Saved passwords are not used automatically. Capital letters and spaces matter.</div>
   </div>
   <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with invite link</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
@@ -529,17 +529,15 @@ async function start(create){const name=$('displayName').value.trim(),pass=$('se
   const action=create?'create':'join';setSetupStatus('Password verified. Connecting securely…');connectSocket(action,authToken,recoveryCode)
  }catch(e){showSetup();setSetupStatus(e.message||'Could not prepare secure chat.')}
 }
-const secretInput=$('secret'),toggleSecret=$('toggleSecret');toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
+const secretInput=$('secret'),toggleSecret=$('toggleSecret');secretInput.addEventListener('focus',()=>secretInput.removeAttribute('readonly'),{once:true});toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
 $('displayName').value=localStorage.getItem('secureChatName')||'';
-function prepareSharedPhrase(mode){
+function prepareSharedPhraseMode(mode){
  const field=$('secret');
  field.setAttribute('autocomplete',mode==='create'?'new-password':'off');
  field.setAttribute('name',mode==='create'?'securechat-new-room-phrase':'securechat-join-room-phrase');
- field.value='';
- field.focus();
 }
-$('create').onclick=()=>{prepareSharedPhrase('create');setSetupStatus('Create a new room. Choose a shared phrase and tell the other person the exact same phrase.')};
-$('connect').onclick=()=>{prepareSharedPhrase('join');start(false)};
+$('create').onclick=()=>{prepareSharedPhraseMode('create');start(true)};
+$('connect').onclick=()=>{prepareSharedPhraseMode('join');start(false)};
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
 async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
@@ -570,7 +568,7 @@ async function joinUsingPairCode(){
  }catch(e){$('setupStatus').textContent=e.message}
  finally{$('joinByPairCode').disabled=false}
 }
-$('joinByPairCode').onclick=()=>{ $('secret').setAttribute('autocomplete','off');$('secret').setAttribute('name','securechat-pair-join-phrase');joinUsingPairCode() };
+$('joinByPairCode').onclick=()=>{ prepareSharedPhraseMode('join');joinUsingPairCode() };
 $('pairCodeInput').addEventListener('input',()=>{$('pairCodeInput').value=normalizePairCode($('pairCodeInput').value).slice(0,16).replace(/(.{4})(?=.)/g,'$1-')});
 $('emojiToggle').onclick=()=>setEmojiPicker($('emojiPicker').classList.contains('hidden'));
 $('closeEmoji').onclick=()=>setEmojiPicker(false);
