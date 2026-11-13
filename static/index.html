@@ -85,7 +85,19 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .share-line{display:flex;flex:1;min-width:0;gap:8px}
 .share input{min-height:38px;font-size:.75rem;background:#fff;padding:9px 11px}
 .share button{min-height:38px;padding:8px 12px;font-size:.76rem}
-.recovery-panel{padding:13px 18px;background:#fff9e9;border-bottom:1px solid #f3e7c6;color:#6e5d35}
+.recovery-panel{padding:12px 18px;background:#faf8ff;border-bottom:1px solid #ece7fa;color:#514b68}
+.recovery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.84rem}
+.recovery-close{min-height:30px;width:30px;padding:0;background:transparent!important;color:#827b91!important;font-size:1.2rem;box-shadow:none!important}
+.recovery-panel p{font-size:.75rem;line-height:1.45;margin:5px 0 9px;color:#777486}
+.recovery-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.recovery-line code{overflow-wrap:anywhere;word-break:break-all;flex:1;color:#5c4e2c;font-size:.8rem;padding:8px 10px;background:#fff;border:1px solid #e9e4f2;border-radius:9px}
+.recovery-line button{min-height:36px;padding:7px 12px;font-size:.74rem}
+.recovery-copy-status{font-size:.73rem;color:#6f61c5;margin-top:7px;min-height:16px}
+.empty-state{display:grid;gap:10px;place-items:center;text-align:center;margin:auto;max-width:360px;padding:24px}
+.empty-state .empty-icon{width:50px;height:50px;border-radius:16px;background:#f0edff;color:#7160cd;display:grid;place-items:center;font-size:1.3rem}
+.empty-state strong{font-size:.94rem;color:#4a4659}
+.empty-state span{font-size:.8rem;line-height:1.55;color:#898596}
+
 .recovery-panel p{font-size:.76rem;line-height:1.45;margin:5px 0 9px}
 .recovery-line{display:flex;align-items:center;gap:9px}
 .recovery-line code{overflow-wrap:anywhere;word-break:break-all;flex:1;color:#5c4e2c;font-size:.8rem}
@@ -137,7 +149,8 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
  .chat-tools{gap:7px;padding:9px 10px;flex-wrap:wrap}
  .chat-tools button{min-height:40px;padding:8px 10px;font-size:.72rem}
  .chat-tools .sound{margin-left:auto}
- .share{padding:9px 10px;align-items:flex-start;flex-direction:column;gap:7px}
+ .share{padding:10px;align-items:stretch;flex-direction:column;gap:8px}
+ .share-copy{max-width:none}
  .share-line{width:100%}
  .share input{min-width:0}
  .recovery-panel{padding:11px 12px}
@@ -163,6 +176,21 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
  .messages{padding-left:9px;padding-right:9px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
+.invite-hint{margin-top:14px;padding:12px 13px;border:1px solid #e8e3f7;border-radius:12px;background:#faf8ff;color:#716b80;font-size:.76rem;line-height:1.5}
+.invite-hint strong{color:#5b4bc0}
+.card-head h3{font-weight:780}
+.share{display:flex;align-items:flex-start;gap:10px;padding:12px 18px;background:#faf9ff;border-bottom:1px solid #ece8f5}
+.share-copy{display:grid;gap:4px;min-width:190px;max-width:300px}
+.share-copy strong{font-size:.82rem;color:#514b68}
+.share-copy span{font-size:.72rem;color:#898596;line-height:1.4}
+.share-line{display:flex;flex:1;min-width:0;gap:8px;align-items:center}
+.share input{min-height:40px;font-size:.75rem;background:#fff;padding:9px 11px}
+.share button{min-height:40px;padding:8px 14px;font-size:.76rem;white-space:nowrap}
+.share-status{font-size:.7rem;color:#6f61c5;min-height:14px;align-self:center}
+.recovery-panel{margin:0;background:#faf9ff;color:#514b68}
+.recovery-line code{color:#514b68}
+.chatmeta{font-weight:600;letter-spacing:.01em}
 </style></head>
 <body><div class="shell">
 <header><div class="avatar" aria-hidden="true">S</div><div class="headcopy"><h1>SecureChatBox</h1><div class="sub status-sub"><span class="presence-dot waiting" id="presenceDot"></span><span id="topStatus" aria-live="polite">A private space for two</span></div></div><div class="headtools"><button id="leave" class="secondary disconnect hidden">Leave chat</button></div></header>
@@ -179,13 +207,13 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   </div>
  </div>
  <div class="setup-card">
-  <div class="card-head"><span class="step">START HERE</span><h3>Open your private chat</h3><p>Create a new room or join with the private link you received.</p></div>
+  <div class="card-head"><span class="step">PRIVATE MESSAGING</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Start a room once, then send its invite link to the one person you want to chat with.</p></div>
   <div class="fields">
    <label class="field-label">Your name<input id="displayName" maxlength="32" placeholder="How should they see you?" autocomplete="nickname"></label>
    <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" placeholder="Enter your shared password" autocomplete="current-password" aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
    <div id="secretHint" class="secret-hint">Use the same phrase as the other person. A longer, unique phrase is safer.</div>
   </div>
-  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join private chat</button></div>
+  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with invite link</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
   <div class="recovery-link"><button type="button" id="showRecoveryForm">Already have a recovery code? Restore your chat</button></div>
   <div id="restoreBox" class="restore-box hidden"><p>Enter the personal recovery code you saved earlier. You will still need your shared secret phrase to open the conversation.</p><input id="restoreCode" maxlength="100" placeholder="Paste your recovery code" autocomplete="off" spellcheck="false"><div class="actions"><button type="button" id="restoreChat">Find my chat</button></div></div>
   <div id="setupStatus" class="statusline" role="status">Your private room is for two participants only.</div>
@@ -198,9 +226,9 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
   <button id="toggleRecovery" class="tertiary" type="button">My recovery code</button>
   <label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label>
  </div>
- <div id="share" class="share hidden"><span class="share-label">Private invite link</span><div class="share-line"><input id="shareUrl" readonly aria-label="Room link"><button id="copy" type="button">Copy link</button></div></div>
- <div id="recoveryPanel" class="recovery-panel hidden"><strong id="recoveryState">Your personal recovery code</strong><p>Save this somewhere private. On another phone, find SecureChatBox, enter this code and then your shared secret phrase. Anyone with both can access this chat.</p><div class="recovery-line"><code id="recoveryCode"></code><button id="copyRecovery" type="button">Copy recovery code</button></div></div>
- <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState">This is your private space. Send a hello when you are ready.</div></div>
+ <div id="share" class="share hidden"><div class="share-copy"><strong>Invite the other person</strong><span>Send this exact link. They should open it and choose Join with invite link using the same shared secret phrase.</span></div><div class="share-line"><input id="shareUrl" readonly aria-label="Room invite link"><button id="copy" type="button">Share invite</button></div><div id="shareStatus" class="share-status" role="status"></div></div>
+ <div id="recoveryPanel" class="recovery-panel hidden"><div class="recovery-heading"><strong id="recoveryState">Your personal recovery code</strong><button id="closeRecovery" class="recovery-close" type="button" aria-label="Close recovery panel">×</button></div><p>Keep a personal backup so you can restore this chat on another phone. Your shared secret phrase is still required to read messages.</p><div class="recovery-line"><code id="recoveryCode" class="hidden"></code><button id="revealRecovery" class="secondary" type="button">Show code</button><button id="copyRecovery" type="button">Copy code</button></div><div id="recoveryCopyStatus" class="recovery-copy-status" role="status"></div></div>
+ <div id="messages" class="messages" aria-live="polite"><div class="empty-state" id="emptyState"><div class="empty-icon">♡</div><strong>Your private chat is ready</strong><span>Share the invite link above. When the other person joins with the same secret phrase, your conversation will appear here.</span></div></div>
  <div id="typing" class="typing"></div>
  <form id="sendForm" class="composer"><input id="message" maxlength="2000" placeholder="Write a message…" autocomplete="off" aria-label="Message"><button id="send" aria-label="Send" disabled>➤</button></form>
 </section>
@@ -220,7 +248,29 @@ function unlockAudio(){try{audio=audio||new (window.AudioContext||window.webkitA
 function beep(){if(!$('soundOn').checked||!audio||audio.state!=='running')return;try{const o=audio.createOscillator(),g=audio.createGain();o.frequency.value=680;g.gain.setValueAtTime(.0001,audio.currentTime);g.gain.exponentialRampToValueAtTime(.06,audio.currentTime+.015);g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.16);o.connect(g);g.connect(audio.destination);o.start();o.stop(audio.currentTime+.17)}catch(e){}}
 function setStatus(s){$('topStatus').textContent=s;const dot=$('presenceDot');if(dot){dot.className='presence-dot';const value=s.toLowerCase();dot.classList.add(value.includes('online')?'online':value.includes('offline')?'offline':'waiting')}}
 function setSetupStatus(s){$('setupStatus').textContent=s||''}
-function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden') }
+function configureInviteMode(){
+ const invited=validRoom(location.hash.slice(1));
+ const title=$('entryTitle'),description=$('entryDescription'),createButton=$('create'),joinButton=$('connect'),hint=$('inviteHint');
+ if(!title||!description||!createButton||!joinButton||!hint)return;
+ if(invited){
+  title.textContent="You've been invited";
+  description.textContent="This link opens an existing private room. Enter your shared phrase to join the conversation.";
+  joinButton.textContent="Join this private chat";
+  joinButton.classList.remove('secondary');
+  createButton.textContent="Create a different room";
+  createButton.classList.add('secondary');
+  hint.classList.remove('hidden');
+ }else{
+  title.textContent="Create your private space";
+  description.textContent="Start a room once, then send its invite link to the one person you want to chat with.";
+  joinButton.textContent="Join with invite link";
+  joinButton.classList.add('secondary');
+  createButton.textContent="Create a private room";
+  createButton.classList.remove('secondary');
+  hint.classList.add('hidden');
+ }
+}
+function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('message').placeholder='Write a message…' }
 function showSetup(){ $('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
 function updateTicks(id){const node=messageNodes.get(id);if(!node)return;const state=messageStates.get(id)||'sent';const t=node.querySelector('.tick');if(!t)return;t.textContent=state==='read'||state==='delivered'?'✓✓':'✓';t.classList.toggle('read',state==='read');t.setAttribute('aria-label',state==='read'?'Read':state==='delivered'?'Delivered':'Sent');t.title=state==='read'?'Read':state==='delivered'?'Delivered':'Sent'}
@@ -234,7 +284,8 @@ function addBubble(id,senderId,obj,createdAt,status='sent'){
  if(!mine){sendReceipt('delivered',id);if(status==='read')readSent.add(id);beep();requestAnimationFrame(markVisibleMessagesRead)}
 }
 async function displayPacket(item){try{const obj=await decrypt(item.payload);const status=item.read?'read':item.delivered?'delivered':'sent';const oldId=item.sender_id===participantId?item.client_message_id:null;const pending=oldId?messageNodes.get(oldId):null;if(pending&&!messageNodes.has(item.message_id)){rendered.delete(oldId);rendered.add(item.message_id);pending.dataset.messageId=item.message_id;messageNodes.delete(oldId);messageNodes.set(item.message_id,pending);messageStates.delete(oldId);messageStates.set(item.message_id,status);const foot=pending.querySelector('.msgfoot span');if(foot)foot.textContent=timeLabel(item.created_at);updateTicks(item.message_id);return}addBubble(item.message_id,item.sender_id,obj,item.created_at,status)}catch(e){$('roomMeta').textContent='A saved message could not be decrypted. Check the shared secret phrase.'}}
-function participantsStatus(list){const other=(list||[]).find(p=>p.id!==participantId);if(!other){setStatus('Waiting for the other person');$('roomMeta').textContent='You are connected · waiting for the other person';return}setStatus((other.name||'Participant')+(other.online?' · Online':' · Offline'));$('roomMeta').textContent=other.online?'End-to-end encrypted · private room':'End-to-end encrypted · your contact is offline'}
+function setEmptyState(title,detail){const empty=$('emptyState');if(!empty||rendered.size)return;empty.replaceChildren();const icon=document.createElement('div');icon.className='empty-icon';icon.textContent='♡';const heading=document.createElement('strong');heading.textContent=title;const note=document.createElement('span');note.textContent=detail;empty.append(icon,heading,note)}
+function participantsStatus(list){const other=(list||[]).find(p=>p.id!==participantId);if(!other){setStatus('Room connected · waiting for invite');$('roomMeta').textContent='Your room is online. The other person has not joined this link yet.';setEmptyState('Your private room is ready','Send the invite link above. The other person must open that exact link, tap “Join this private chat”, and enter the same shared secret phrase.');return}setStatus((other.name||'Participant')+(other.online?' · Online':' · Offline'));$('roomMeta').textContent=other.online?'Both people are connected · private chat is live':'The other person is offline · messages will sync when they return';setEmptyState(other.online?'You are both connected':'Waiting for the other person to come back',other.online?'Your private conversation is ready. Say hello.':'Messages you send now will be available when they reconnect.')}
 function sendReceipt(type,id){if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type,message_id:id}));if(type==='read')readSent.add(id)}}
 function chatIsActive(){return document.visibilityState==='visible'&&(typeof document.hasFocus!=='function'||document.hasFocus())&&!$('chatArea').classList.contains('hidden')&&ws&&ws.readyState===WebSocket.OPEN}
 function markVisibleMessagesRead(){if(!chatIsActive())return;const viewport=$('messages').getBoundingClientRect();for(const [id,node] of messageNodes){if(node.classList.contains('mine')||readSent.has(id))continue;const rect=node.getBoundingClientRect();const visibleHeight=Math.max(0,Math.min(rect.bottom,viewport.bottom)-Math.max(rect.top,viewport.top));const visibleWidth=Math.max(0,Math.min(rect.right,viewport.right)-Math.max(rect.left,viewport.left));const denominator=Math.max(1,Math.min(rect.height,viewport.height));if(visibleHeight/denominator>=0.6&&visibleWidth>0)sendReceipt('read',id)}}
@@ -248,11 +299,13 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
    if(action==='create'||action==='join'){$('shareUrl').value=location.href;$('share').classList.remove('hidden')}
    const savedRecovery=localStorage.getItem('securechat:recovery:'+roomId)||'';
    $('recoveryCode').textContent=savedRecovery||'No recovery code is saved on this device.';
-   $('recoveryState').textContent=packet.recovery_saved?'Your personal recovery code':'Recovery code needs attention';
-   if(!packet.recovery_saved){$('recoveryPanel').classList.remove('hidden');$('recoveryState').textContent='This recovery code is not linked to this chat. Use the code you originally saved.'}
-   else if(!localStorage.getItem('securechat:recovery-shown:'+roomId)){$('recoveryPanel').classList.remove('hidden');localStorage.setItem('securechat:recovery-shown:'+roomId,'1')}
+   $('recoveryCode').classList.add('hidden');
+   $('revealRecovery').textContent='Show code';
+   $('recoveryState').textContent=packet.recovery_saved?'Personal recovery code is ready':'Recovery code needs attention';
+   $('recoveryPanel').classList.add('hidden');
+   $('recoveryCopyStatus').textContent=packet.recovery_saved?'Save a private backup before changing phones.':'This code is not linked to this room. Restore with the code you originally saved.'
    for(const item of (packet.history||[])){await displayPacket(item)}
-   $('roomMeta').textContent='End-to-end encrypted · messages are synced';scheduleReadCheck();return;
+   $('roomMeta').textContent='End-to-end encrypted · messages are synced';$('shareStatus').textContent='Send this exact invite link to connect the other person.';scheduleReadCheck();return;
   }
   if(packet.type==='message'){await displayPacket(packet);return}
   if(packet.type==='message_ack'){const id=packet.message_id,oldId=packet.client_message_id,node=messageNodes.get(oldId);if(node){rendered.delete(oldId);rendered.add(id);node.dataset.messageId=id;messageNodes.delete(oldId);messageNodes.set(id,node);const state=messageStates.get(oldId)||'sent';messageStates.delete(oldId);messageStates.set(id,state);updateTicks(id)}return}
@@ -262,9 +315,10 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
   if(packet.type==='error'){$('roomMeta').textContent=packet.message||'A chat error occurred';return}
  };
  ws.onerror=()=>{setStatus('Connection interrupted')};
- ws.onclose=ev=>{connected=false;$('send').disabled=true;if(manualLeave)return;const reason=ev.reason||'Connection lost';setStatus('Reconnecting…');$('roomMeta').textContent=reason;
-  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent=reason;showSetup();setSetupStatus(reason);return}
-  if(ev.code===4001){manualLeave=true;setStatus('Session opened elsewhere');$('roomMeta').textContent=reason;showSetup();setSetupStatus('This participant is already connected in another tab. Close that tab before reconnecting here.');return}
+ ws.onclose=ev=>{connected=false;$('send').disabled=true;if(manualLeave)return;const reason=ev.reason||'Connection lost';
+  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The invite link is valid, but the shared secret phrase does not match. Ask the room creator to confirm the exact phrase.':reason.includes('already exists')?'This room already exists. Use “Join this private chat” with the invite link.':reason.includes('two participants')?'This private room already has two participants. No third participant can join.':reason;setSetupStatus(msg);return}
+  if(ev.code===4001){manualLeave=true;setStatus('Session opened on another device');$('roomMeta').textContent='This participant is already active elsewhere.';showSetup();setSetupStatus('This recovery identity is already connected on another device. Close the other session before reconnecting here.');return}
+  setStatus('Reconnecting…');$('roomMeta').textContent='Connection dropped. Trying to reconnect…';
   reconnectTimer=setTimeout(()=>{if(!manualLeave)connectSocket('join',authToken,recoveryCode)},reconnectDelay);reconnectDelay=Math.min(30000,Math.round(reconnectDelay*1.8));
  };
 }
@@ -277,15 +331,18 @@ const secretInput=$('secret'),toggleSecret=$('toggleSecret');toggleSecret.addEve
 $('displayName').value=localStorage.getItem('secureChatName')||'';
 $('create').onclick=()=>start(true);$('connect').onclick=()=>start(false);
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
-async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
+async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
 $('toggleRecovery').onclick=()=>{$('recoveryPanel').classList.toggle('hidden');if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
-$('copyRecovery').onclick=async()=>{const code=localStorage.getItem('securechat:recovery:'+roomId)||'';if(!code){$('recoveryState').textContent='No recovery code is available on this device.';return}try{await navigator.clipboard.writeText(code);$('recoveryState').textContent='Recovery code copied. Save it somewhere private.'}catch(e){$('recoveryState').textContent='Select the code above and copy it manually.'}};
+$('closeRecovery').onclick=()=>$('recoveryPanel').classList.add('hidden');
+$('revealRecovery').onclick=()=>{const code=$('recoveryCode');const show=code.classList.contains('hidden');code.classList.toggle('hidden',!show);$('revealRecovery').textContent=show?'Hide code':'Show code'};
+$('copyRecovery').onclick=async()=>{const code=localStorage.getItem('securechat:recovery:'+roomId)||'';if(!code){$('recoveryCopyStatus').textContent='No recovery code is available on this device.';return}try{await navigator.clipboard.writeText(code);$('recoveryCopyStatus').textContent='Copied. Store it somewhere private.'}catch(e){$('recoveryCode').classList.remove('hidden');$('revealRecovery').textContent='Hide code';$('recoveryCopyStatus').textContent='Clipboard unavailable. Select and copy the code above.'}};
 
-$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('shareUrl').value);$('copy').textContent='Copied';setTimeout(()=>$('copy').textContent='Copy link',1600)}catch(e){$('shareUrl').select();setSetupStatus('Select and copy the link.')}};
+$('copy').onclick=async()=>{const url=$('shareUrl').value;try{if(navigator.share){await navigator.share({title:'SecureChatBox invite',text:'Join my private chat using the same shared secret phrase.',url});$('shareStatus').textContent='Invite ready to share.'}else{await navigator.clipboard.writeText(url);$('shareStatus').textContent='Invite link copied. Send this exact link to the other person.'}}catch(e){if(e&&e.name==='AbortError')return;$('shareUrl').select();$('shareStatus').textContent='Select and copy the invite link above.'}};
 $('sendForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('message').value.trim();if(!text||!ws||ws.readyState!==WebSocket.OPEN)return;try{const payload=await encrypt({name:$('displayName').value.trim(),text});const localId=randomHex(16);addBubble(localId,participantId,{text},Date.now()/1000,'sent');ws.send(JSON.stringify({type:'message',client_message_id:localId,payload}));$('message').value='';}catch(e){$('roomMeta').textContent='Message could not be encrypted.'}});
 $('message').addEventListener('input',()=>{if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSON.stringify({type:'typing',active:true}));clearTimeout(typingTimer);typingTimer=setTimeout(()=>ws&&ws.readyState===WebSocket.OPEN&&ws.send(JSON.stringify({type:'typing',active:false})),1200)}});
 document.addEventListener('visibilitychange',scheduleReadCheck);window.addEventListener('focus',scheduleReadCheck);window.addEventListener('pageshow',scheduleReadCheck);$('messages').addEventListener('scroll',scheduleReadCheck,{passive:true});
 $('leave').onclick=()=>{manualLeave=true;clearTimers();if(ws)ws.close(1000,'User disconnected');ws=null;key=null;connected=false;showSetup();setSetupStatus('Disconnected. Your saved chat remains available when you join again.');setStatus('Not connected')};
 if(!location.hash&&validRoom(localStorage.getItem('secureChatRoom')))location.hash=localStorage.getItem('secureChatRoom');
+window.addEventListener('hashchange',configureInviteMode);configureInviteMode();
 </script></body></html>
