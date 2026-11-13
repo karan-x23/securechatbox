@@ -306,13 +306,15 @@ button:focus-visible,input:focus-visible{outline:3px solid #a89ce9;outline-offse
   </div>
  </div>
  <div class="setup-card">
-  <div class="card-head"><span class="step">PRIVATE MESSAGING</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Start a room once, then send its invite link to the one person you want to chat with.</p></div>
+  <div class="card-head"><span class="step">PRIVATE MESSAGING</span><h3 id="entryTitle">Create your private space</h3><p id="entryDescription">Create a room with a name, or join an existing room using the same room name and shared password.</p></div>
   <div class="fields">
+   <label class="field-label">Room name (same on both phones)<input id="roomName" maxlength="40" placeholder="e.g. Karan Private Chat" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="roomNameHint"></label>
+   <div id="roomNameHint" class="secret-hint">Create a room using this name, then the other person enters the exact same room name and shared password.</div>
    <label class="field-label">Your name<input id="displayName" maxlength="32" placeholder="How should they see you?" autocomplete="nickname"></label>
    <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" name="securechat-room-shared-phrase" placeholder="Enter your shared password" autocomplete="new-password" autocapitalize="off" spellcheck="false" readonly aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
-   <div id="secretHint" class="secret-hint">Use the exact same phrase on both phones. Saved passwords are not used automatically. Capital letters and spaces matter.</div>
+   <div id="secretHint" class="secret-hint">Use the same shared password on both phones. Room names locate chats; this password protects access. Capital letters and spaces matter.</div>
   </div>
-  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with invite link</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
+  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with room name &amp; password</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
   <div class="pair-entry">
    <button type="button" id="showPairCodeForm">Have a pairing code? Join without a link</button>
    <div id="pairCodeForm" class="pair-code-form hidden">
@@ -441,16 +443,16 @@ function configureInviteMode(){
  if(!title||!description||!createButton||!joinButton||!hint)return;
  if(invited){
   title.textContent="You've been invited";
-  description.textContent="This link opens an existing private room. Enter your shared phrase to join the conversation.";
+  description.textContent="This link opens an existing private room. Enter your shared phrase to join the conversation. You can also enter a room name to join directly.";
   joinButton.textContent="Join this private chat";
   joinButton.classList.remove('secondary');
   createButton.textContent="Create a different room";
   createButton.classList.add('secondary');
   hint.classList.remove('hidden');
  }else{
-  title.textContent="Create your private space";
-  description.textContent="Start a room once, then send its invite link to the one person you want to chat with.";
-  joinButton.textContent="Join with invite link";
+  title.textContent="Create or join a private chat";
+  description.textContent="Create a room with a name, or join an existing room using the same room name and shared password.";
+  joinButton.textContent="Join with room name & password";
   joinButton.classList.add('secondary');
   createButton.textContent="Create a private room";
   createButton.classList.remove('secondary');
@@ -506,28 +508,78 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
  };
  socket.onerror=()=>{if(ws===socket){setStatus('Connection interrupted');$('roomMeta').textContent='The secure connection could not be completed. Check your network and retry.'}};
  socket.onclose=ev=>{if(ws!==socket)return;connected=false;$('send').disabled=true;if(manualLeave)return;if(backgroundPaused){setStatus('Offline');$('roomMeta').textContent='You are away. You will be online again when you return.';return;}const reason=ev.reason||'Connection lost';
-  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The pairing code is correct, but this password does not match the room. Your browser may have filled a saved password. Tap Show, clear the field, and type the creator’s exact shared phrase yourself. Capital letters and spaces must match.':reason.includes('Room already exists')?'This room already exists. Please use Join, not Create.':reason.includes('two participants')?'This private room already has two participants. Ask the creator for a new room.':reason.includes('Room not found')?'This private room could not be found. Ask the creator for a fresh pairing code.':reason;setSetupStatus(msg);return}
+  if(ev.code===1008){manualLeave=true;setStatus('Could not join this room');$('roomMeta').textContent='We could not open this private room.';showSetup();const msg=reason.includes('secret phrase')?'The pairing code is correct, but this password does not match the room. Your browser may have filled a saved password. Tap Show, clear the field, and type the creator’s exact shared phrase yourself. Capital letters and spaces must match.':reason.includes('Room already exists')?'This room name is already in use. Join it with the shared password, or choose a different room name.':reason.includes('two participants')?'This private room already has two participants. Ask the creator for a new room.':reason.includes('Room not found')?'This private room could not be found. Ask the creator for a fresh pairing code.':reason;setSetupStatus(msg);return}
   if(ev.code===4001){manualLeave=true;setStatus('Session opened on another device');$('roomMeta').textContent='This participant is already active elsewhere.';showSetup();setSetupStatus('This recovery identity is already connected on another device. Close the other session before reconnecting here.');return}
   setStatus('Reconnecting…');$('roomMeta').textContent='Connection dropped. Trying to reconnect…';
   reconnectTimer=setTimeout(()=>{if(!manualLeave)connectSocket('join',authToken,recoveryCode)},reconnectDelay);reconnectDelay=Math.min(30000,Math.round(reconnectDelay*1.8));
  };
 }
-async function start(create){const name=$('displayName').value.trim(),pass=$('secret').value;if(!name){setSetupStatus('Enter your display name.');return}if(pass.length===0){setSetupStatus('Enter your shared password.');$('secret').focus();return}if(!window.crypto?.subtle){setSetupStatus('This browser does not support secure encryption.');return}unlockAudio();
- if(create){roomId=randomHex();participantId=randomHex();location.hash=roomId;localStorage.setItem(participantStorageKey(),participantId)}else{roomId=location.hash.slice(1)||localStorage.getItem('secureChatRoom');if(!validRoom(roomId)){setSetupStatus('Open the room link first, including its # room code.');return}participantId=localStorage.getItem(participantStorageKey());if(!participantId){participantId=randomHex();localStorage.setItem(participantStorageKey(),participantId)}}
- localStorage.setItem('secureChatRoom',roomId);localStorage.setItem('secureChatName',name);setSetupStatus('Preparing encryption…');
+async function resolveRoomIdByName(roomName){
+ const response=await fetch('/api/rooms/resolve-name',{
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  cache:'no-store',
+  body:JSON.stringify({room_name:roomName})
+ });
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(result.detail||'Could not resolve this room name.');
+ if(!validRoom(result.room_id))throw new Error('The server returned an invalid room identity. Please refresh and try again.');
+ return result.room_id;
+}
+async function start(create,forceInvite=false){
+ const name=$('displayName').value.trim(),pass=$('secret').value,roomName=$('roomName').value.trim();
+ if(!name){setSetupStatus('Enter your display name.');$('displayName').focus();return}
+ if(pass.length===0){setSetupStatus('Enter your shared password.');$('secret').focus();return}
+ if(!window.crypto?.subtle){setSetupStatus('This browser does not support secure encryption.');return}
+ const inviteId=location.hash.slice(1);
+ const useNamedRoom=create||(!forceInvite&&roomName.length>0);
+ if(!create&&!useNamedRoom&&!validRoom(inviteId)){
+  setSetupStatus('Enter the room name shared by the creator, or open their private invite link.');
+  $('roomName').focus();
+  return;
+ }
+ if(useNamedRoom&&!/^[a-z0-9][a-z0-9 _-]{1,39}$/i.test(roomName.replace(/\s+/g,' ').trim())){
+  setSetupStatus('Room name must be 2–40 characters and use only letters, numbers, spaces, hyphens or underscores.');
+  $('roomName').focus();
+  return;
+ }
+ unlockAudio();
  try{
+  setSetupStatus(useNamedRoom?'Finding the private room…':'Preparing encryption…');
+  roomId=useNamedRoom?await resolveRoomIdByName(roomName):inviteId;
+  if(create){
+   participantId=randomHex();
+  }else{
+   participantId=localStorage.getItem(participantStorageKey());
+   if(!participantId){participantId=randomHex();localStorage.setItem(participantStorageKey(),participantId)}
+  }
+  localStorage.setItem('secureChatRoom',roomId);
+  localStorage.setItem('secureChatName',name);
+  if(useNamedRoom)localStorage.setItem('secureChatRoomName',roomName.replace(/\s+/g,' ').trim());
+  setSetupStatus('Preparing encryption…');
   const authToken=await deriveKeys(pass,roomId);
   if(!create){
    setSetupStatus('Checking the shared password…');
-   const check=await fetch('/api/rooms/verify',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({room_id:roomId,auth_token:authToken,participant_id:participantId})});
-   const result=await check.json();
+   const check=await fetch('/api/rooms/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    cache:'no-store',
+    body:JSON.stringify({room_id:roomId,auth_token:authToken,participant_id:participantId})
+   });
+   const result=await check.json().catch(()=>({}));
    if(!check.ok)throw new Error(result.detail||'Could not verify access to this private room.');
   }
+  if(useNamedRoom)location.hash=roomId;
   let recoveryCode=localStorage.getItem('securechat:recovery:'+roomId);
   if(!recoveryCode){recoveryCode=b64url(crypto.getRandomValues(new Uint8Array(32)));localStorage.setItem('securechat:recovery:'+roomId,recoveryCode)}
   $('messages').replaceChildren();rendered.clear();messageNodes.clear();messageStates.clear();readSent.clear();
-  const action=create?'create':'join';setSetupStatus('Password verified. Connecting securely…');connectSocket(action,authToken,recoveryCode)
- }catch(e){showSetup();setSetupStatus(e.message||'Could not prepare secure chat.')}
+  const action=create?'create':'join';
+  setSetupStatus(create?'Creating your private room…':'Password verified. Connecting securely…');
+  connectSocket(action,authToken,recoveryCode);
+ }catch(e){
+  showSetup();
+  setSetupStatus(e.message||'Could not prepare secure chat. Please check the room name and password.');
+ }
 }
 const secretInput=$('secret'),toggleSecret=$('toggleSecret');secretInput.addEventListener('focus',()=>secretInput.removeAttribute('readonly'),{once:true});toggleSecret.addEventListener('click',()=>{const show=secretInput.type==='password';secretInput.type=show?'text':'password';toggleSecret.textContent=show?'Hide':'Show';toggleSecret.setAttribute('aria-label',show?'Hide password':'Show password');toggleSecret.setAttribute('aria-pressed',String(show))});
 $('displayName').value=localStorage.getItem('secureChatName')||'';
@@ -539,7 +591,7 @@ function prepareSharedPhraseMode(mode){
 $('create').onclick=()=>{prepareSharedPhraseMode('create');start(true)};
 $('connect').onclick=()=>{prepareSharedPhraseMode('join');start(false)};
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
-async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
+async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;$('roomName').value='';localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
 $('toggleRecovery').onclick=()=>{$('recoveryPanel').classList.toggle('hidden');if(!$('recoveryPanel').classList.contains('hidden'))$('recoveryPanel').scrollIntoView({behavior:'smooth',block:'nearest'})};
 $('closeRecovery').onclick=()=>$('recoveryPanel').classList.add('hidden');
@@ -564,7 +616,7 @@ async function joinUsingPairCode(){
   roomId=data.room_id;location.hash=roomId;localStorage.setItem('secureChatRoom',roomId);
   $('pairCodeInput').value=formatPairCode(code);$('pairCodeForm').classList.add('hidden');configureInviteMode();
   $('setupStatus').textContent='Pairing code matched. Connecting to the same private room…';
-  await start(false);
+  await start(false,true);
  }catch(e){$('setupStatus').textContent=e.message}
  finally{$('joinByPairCode').disabled=false}
 }
