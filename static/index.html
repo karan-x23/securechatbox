@@ -1385,8 +1385,10 @@ async function startJoinRequest(){
    setSetupStatus('Sending your one-time request…');
   }
   await pollPendingJoinRequest(record);
-  if(joinRequestPollTimer)clearInterval(joinRequestPollTimer);
-  joinRequestPollTimer=setInterval(()=>pollPendingJoinRequest(record),4500);
+  if(joinRequestPollTimer){clearInterval(joinRequestPollTimer);joinRequestPollTimer=null}
+  if(!activeJoinRequestRoomId&&!['rejected','closed'].includes(record.serverStatus)){
+   joinRequestPollTimer=setInterval(()=>pollPendingJoinRequest(record),4500);
+  }
  }catch(error){setSetupStatus(error.message||'Could not send the join request. Please try again.')}
  finally{button.disabled=false}
 }
