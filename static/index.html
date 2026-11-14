@@ -885,7 +885,7 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 </form>
 </section>
 </main></div><script>
-const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false,activePairCode=null;
+const $=id=>document.getElementById(id);let ws=null,key=null,roomId=null,participantId=null,activeAction='join',manualLeave=false,reconnectTimer=null,pingTimer=null,reconnectDelay=1000,connected=false,typingTimer=null,audio=null,readRefreshScheduled=false,currentAuthToken=null,currentRecoveryCode=null,backgroundPaused=false,activePairCode=null,approvalRoomKeyBytes=null,approvalWrappingKey=null;
 const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNodes=new Map(),messageStates=new Map(),readSent=new Set();
 const MAX_VOICE_DURATION_SECONDS=30,MAX_VOICE_BYTES=240*1024;
 let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceBytes=0,voiceStartedAt=0,voiceTimer=null,voiceHardStopTimer=null,voiceDurationSeconds=0,voicePreviewBlob=null,voicePreviewUrl=null,voiceDiscardOnStop=false,voiceTooLarge=false;
@@ -949,7 +949,7 @@ function normalizePairCode(code){return (code||'').replace(/[\s-]/g,'').toUpperC
 function validPairCode(code){return /^[A-HJ-NP-Z2-9]{16}$/.test(normalizePairCode(code))}
 function validRoom(s){return /^[a-f0-9]{32}$/.test(s||'')}
 async function deriveBits(pass,salt){const material=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveBits']);return crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode(salt),iterations:310000,hash:'SHA-256'},material,256)}
-async function deriveKeys(pass,room){const aesBits=await deriveBits(pass,room+':e2e:v1');const authBits=await deriveBits(pass,room+':auth:v1');key=await crypto.subtle.importKey('raw',aesBits,{name:'AES-GCM'},false,['encrypt','decrypt']);return b64url(new Uint8Array(authBits))}
+async function deriveKeys(pass,room){const aesBits=await deriveBits(pass,room+':e2e:v1');const authBits=await deriveBits(pass,room+':auth:v1');approvalRoomKeyBytes=new Uint8Array(aesBits);approvalWrappingKey=null;key=await crypto.subtle.importKey('raw',aesBits,{name:'AES-GCM'},false,['encrypt','decrypt']);return b64url(new Uint8Array(authBits))}
 async function encrypt(obj){const iv=crypto.getRandomValues(new Uint8Array(12));const data=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj)));return {iv:b64url(iv),data:b64url(new Uint8Array(data))}}
 async function decrypt(payload){const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64bytes(payload.iv)},key,b64bytes(payload.data));return JSON.parse(dec.decode(raw))}
 function participantStorageKey(){return 'securechat:participant:'+roomId}
@@ -989,6 +989,7 @@ async function writeRememberedSessionRecord(record){
 }
 async function forgetRememberedSession(targetRoom){
  if(!validRoom(targetRoom)||!window.indexedDB)return;
+ if(targetRoom===roomId){approvalRoomKeyBytes=null;approvalWrappingKey=null}
  const db=await openRememberedSessionsDb();
  return new Promise((resolve,reject)=>{
   const tx=db.transaction('sessions','readwrite');
@@ -1027,10 +1028,18 @@ async function saveRememberedDeviceSession(){
  const iv=crypto.getRandomValues(new Uint8Array(12));
  const credentials=enc.encode(JSON.stringify({authToken:currentAuthToken,recoveryCode:currentRecoveryCode}));
  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,credentials);
+ let approvalKeyCipher=null;
+ if(approvalRoomKeyBytes instanceof Uint8Array&&approvalRoomKeyBytes.byteLength===32){
+  if(!approvalWrappingKey)approvalWrappingKey=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const approvalIv=crypto.getRandomValues(new Uint8Array(12));
+  const approvalEncrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv:approvalIv},approvalWrappingKey,approvalRoomKeyBytes);
+  approvalKeyCipher={iv:b64url(approvalIv),data:b64url(new Uint8Array(approvalEncrypted))};
+ }
  await writeRememberedSessionRecord({
   roomId,participantId,name:$('displayName').value.trim(),
   encryptionKey:key,
   credentialCipher:{iv:b64url(iv),data:b64url(new Uint8Array(encrypted))},
+  approvalWrappingKey,approvalKeyCipher,
   savedAt:Date.now()
  });
  return true;
@@ -1045,7 +1054,14 @@ async function loadRememberedDeviceSession(targetRoom){
   );
   const credentials=JSON.parse(dec.decode(raw));
   if(typeof credentials.authToken!=='string'||typeof credentials.recoveryCode!=='string')throw new Error('Saved credentials are incomplete.');
-  return {roomId:record.roomId,participantId:record.participantId,name:record.name||'',encryptionKey:record.encryptionKey,authToken:credentials.authToken,recoveryCode:credentials.recoveryCode};
+  let savedApprovalRoomKeyBytes=null;
+  if(record.approvalWrappingKey&&record.approvalKeyCipher?.iv&&record.approvalKeyCipher?.data){
+   try{
+    const approvalRaw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64bytes(record.approvalKeyCipher.iv)},record.approvalWrappingKey,b64bytes(record.approvalKeyCipher.data));
+    if(approvalRaw.byteLength===32)savedApprovalRoomKeyBytes=new Uint8Array(approvalRaw);
+   }catch(error){console.warn('Saved one-tap approval key could not be restored:',error)}
+  }
+  return {roomId:record.roomId,participantId:record.participantId,name:record.name||'',encryptionKey:record.encryptionKey,authToken:credentials.authToken,recoveryCode:credentials.recoveryCode,approvalRoomKeyBytes:savedApprovalRoomKeyBytes,approvalWrappingKey:record.approvalWrappingKey||null};
  }catch(error){
   await forgetRememberedSession(targetRoom).catch(()=>{});
   throw new Error('The saved session could not be unlocked. Please join again with your shared password.');
@@ -1069,7 +1085,7 @@ async function resumeRememberedDevice(){
    }
   }
   if(!saved)return;
-  roomId=saved.roomId;participantId=saved.participantId;key=saved.encryptionKey;
+  roomId=saved.roomId;participantId=saved.participantId;key=saved.encryptionKey;approvalRoomKeyBytes=saved.approvalRoomKeyBytes||null;approvalWrappingKey=saved.approvalWrappingKey||null;
   localStorage.setItem('secureChatRoom',roomId);
   localStorage.setItem(participantStorageKey(),participantId);
   if(saved.name)localStorage.setItem('secureChatName',saved.name);
@@ -1244,27 +1260,36 @@ function renderOwnerJoinRequests(){
  for(const request of pendingOwnerRequests){
   const card=document.createElement('article');card.className='join-request-card';
   const title=document.createElement('strong');title.textContent=request.name+' wants to join';
-  const note=document.createElement('p');note.textContent='Confirm your existing room password once to securely share the chat key with this device.';
-  const label=document.createElement('label');label.textContent='Your shared room password';
-  const secret=document.createElement('input');secret.type='password';secret.autocomplete='current-password';secret.placeholder='Enter your room password';label.append(secret);
+  const hasApprovalKey=approvalRoomKeyBytes instanceof Uint8Array&&approvalRoomKeyBytes.byteLength===32;
+  const note=document.createElement('p');note.textContent=hasApprovalKey?'Tap Accept to let this person join. No password needed.':'Enter your room password once to enable one-tap approvals on this device.';
+  let secret=null;
+  if(!hasApprovalKey){
+   const label=document.createElement('label');label.textContent='One-time setup · shared room password';
+   secret=document.createElement('input');secret.type='password';secret.autocomplete='current-password';secret.placeholder='Enter your room password';label.append(secret);card.append(title,note,label);
+  }else{card.append(title,note)}
   const actions=document.createElement('div');actions.className='join-request-actions';
-  const accept=document.createElement('button');accept.type='button';accept.textContent='Accept request';
+  const accept=document.createElement('button');accept.type='button';accept.textContent='Accept';
   const reject=document.createElement('button');reject.type='button';reject.className='secondary';reject.textContent='Reject';
   accept.onclick=()=>approveJoinRequest(request,secret,accept,reject);
   reject.onclick=()=>rejectJoinRequest(request,reject,accept);
-  actions.append(accept,reject);card.append(title,note,label,actions);list.append(card);
+  actions.append(accept,reject);card.append(actions);list.append(card);
  }
 }
 async function approveJoinRequest(request,secretInput,acceptButton,rejectButton){
- const pass=secretInput.value;
- if(!pass){secretInput.focus();return}
- acceptButton.disabled=true;rejectButton.disabled=true;secretInput.disabled=true;
+ acceptButton.disabled=true;rejectButton.disabled=true;if(secretInput)secretInput.disabled=true;
  try{
   setStatus('Preparing secure approval…');
-  const aesBits=await deriveBits(pass,roomId+':e2e:v1');
-  const authBits=await deriveBits(pass,roomId+':auth:v1');
-  const authToken=b64url(new Uint8Array(authBits));
-  if(authToken!==currentAuthToken)throw new Error('That password does not match this room. Check the exact shared phrase and try again.');
+  let roomKeyBytes=approvalRoomKeyBytes;
+  if(!(roomKeyBytes instanceof Uint8Array)||roomKeyBytes.byteLength!==32){
+   const pass=secretInput?.value||'';
+   if(!pass){if(secretInput)secretInput.focus();throw new Error('Enter your room password once to enable one-tap approvals on this device.')}
+   const authBits=await deriveBits(pass,roomId+':auth:v1');
+   const authToken=b64url(new Uint8Array(authBits));
+   if(authToken!==currentAuthToken)throw new Error('That password does not match this room. Check the exact shared phrase and try again.');
+   roomKeyBytes=new Uint8Array(await deriveBits(pass,roomId+':e2e:v1'));
+   approvalRoomKeyBytes=roomKeyBytes;
+   await saveRememberedDeviceSession().catch(error=>console.warn('Could not save one-tap approval on this device:',error));
+  }
   const recipientPublic=await crypto.subtle.importKey('raw',b64bytes(request.public_key),{name:'ECDH',namedCurve:'P-256'},false,[]);
   const ephemeral=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
   const shared=await crypto.subtle.deriveBits({name:'ECDH',public:recipientPublic},ephemeral.privateKey,256);
@@ -1274,7 +1299,7 @@ async function approveJoinRequest(request,secretInput,acceptButton,rejectButton)
    hkdf,{name:'AES-GCM',length:256},false,['encrypt']
   );
   const recoveryCode=b64url(crypto.getRandomValues(new Uint8Array(32)));
-  const bundle={roomKey:b64url(new Uint8Array(aesBits)),authToken,recoveryCode,participantId:request.participant_id,name:request.name,requestId:request.request_id};
+  const bundle={roomKey:b64url(roomKeyBytes),authToken:currentAuthToken,recoveryCode,participantId:request.participant_id,name:request.name,requestId:request.request_id};
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv},wrapKey,enc.encode(JSON.stringify(bundle)));
   const ephemeralPublic=b64url(new Uint8Array(await crypto.subtle.exportKey('raw',ephemeral.publicKey)));
@@ -1283,11 +1308,11 @@ async function approveJoinRequest(request,secretInput,acceptButton,rejectButton)
    request_id:request.request_id,decision:'accept',
    envelope:{ephemeral_public_key:ephemeralPublic,iv:b64url(iv),data:b64url(new Uint8Array(ciphertext))}
   });
-  secretInput.value='';setStatus('Connected securely');$('roomMeta').textContent=request.name+' has been approved. Their device will connect automatically.';
+  if(secretInput)secretInput.value='';setStatus('Connected securely');$('roomMeta').textContent=request.name+' has been approved. Their device will connect automatically.';
   pendingOwnerRequests=pendingOwnerRequests.filter(item=>item.request_id!==request.request_id);renderOwnerJoinRequests();
  }catch(error){
   setStatus('Connected securely');$('roomMeta').textContent=error.message||'Could not approve this request.';
-  acceptButton.disabled=false;rejectButton.disabled=false;secretInput.disabled=false;secretInput.focus();
+  acceptButton.disabled=false;rejectButton.disabled=false;if(secretInput){secretInput.disabled=false;secretInput.focus()}
  }
 }
 async function rejectJoinRequest(request,rejectButton,acceptButton){
@@ -1322,7 +1347,7 @@ async function completeApprovedJoin(record,envelope){
   if(bundle.requestId!==record.requestId||bundle.participantId!==record.participantId||typeof bundle.roomKey!=='string'||typeof bundle.authToken!=='string'||typeof bundle.recoveryCode!=='string')throw new Error('The approval did not match this device request.');
   const roomKey=b64bytes(bundle.roomKey);
   if(roomKey.length!==32||! /^[A-Za-z0-9_-]{40,100}$/.test(bundle.authToken)||! /^[A-Za-z0-9_-]{40,100}$/.test(bundle.recoveryCode))throw new Error('The secure approval package was incomplete.');
-  key=await crypto.subtle.importKey('raw',roomKey,{name:'AES-GCM'},false,['encrypt','decrypt']);
+  approvalRoomKeyBytes=new Uint8Array(roomKey);approvalWrappingKey=null;key=await crypto.subtle.importKey('raw',roomKey,{name:'AES-GCM'},false,['encrypt','decrypt']);
   roomId=record.roomId;participantId=record.participantId;currentAuthToken=bundle.authToken;currentRecoveryCode=bundle.recoveryCode;activeJoinRequestRoomId=roomId;
   localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);
   localStorage.setItem('secureChatRoomName',record.roomName);localStorage.setItem('secureChatName',bundle.name||record.name);
