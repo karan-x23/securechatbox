@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import hmac
 import json
@@ -30,6 +31,10 @@ PAIR_CODE_RE = re.compile(r"^[A-HJ-NP-Z2-9]{16}$")
 HISTORY_LIMIT = 200
 HEARTBEAT_TIMEOUT = 75
 MAX_ENCRYPTED_PAYLOAD_CHARS = 450_000  # Supports short, client-encrypted voice notes.
+JOIN_REQUEST_ID_RE = re.compile(r"^[a-f0-9]{64}$")
+JOIN_DEVICE_ID_RE = re.compile(r"^[a-f0-9]{32}$")
+JOIN_PUBLIC_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{87}$")
+MAX_PENDING_JOIN_REQUESTS = 10
 DB_PATH = os.environ.get("DATABASE_PATH", "./data/securechatbox.sqlite3")
 AUTH_PEPPER = os.environ.get("AUTH_PEPPER", "")
 
@@ -108,6 +113,22 @@ def init_db() -> None:
                 PRIMARY KEY (message_id, participant_id),
                 FOREIGN KEY (message_id) REFERENCES messages(message_id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS join_requests (
+                request_id TEXT PRIMARY KEY,
+                room_id TEXT NOT NULL,
+                participant_id TEXT NOT NULL,
+                device_id TEXT NOT NULL,
+                display_name TEXT NOT NULL,
+                public_key TEXT NOT NULL,
+                status TEXT NOT NULL,
+                approval_json TEXT,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                UNIQUE(room_id, device_id),
+                FOREIGN KEY (room_id) REFERENCES rooms(room_id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_join_requests_room_status
+                ON join_requests(room_id, status, created_at);
             """
         )
         message_columns = {row["name"] for row in conn.execute("PRAGMA table_info(messages)").fetchall()}
@@ -365,6 +386,180 @@ async def recover_participant(payload: dict[str, Any]) -> JSONResponse:
     )
 
 
+
+def _valid_join_public_key(value: Any) -> bool:
+    if not isinstance(value, str) or not JOIN_PUBLIC_KEY_RE.fullmatch(value):
+        return False
+    try:
+        raw = base64.urlsafe_b64decode(value + "=" * ((4 - len(value) % 4) % 4))
+    except Exception:
+        return False
+    return len(raw) == 65 and raw[0] == 4
+
+
+def _authorized_room_participant(conn: sqlite3.Connection, room_id: str, participant_id: str, auth_token: str) -> bool:
+    room = conn.execute("SELECT auth_hash FROM rooms WHERE room_id=?", (room_id,)).fetchone()
+    if not room or not hmac.compare_digest(room["auth_hash"], token_hash(auth_token)):
+        return False
+    return bool(conn.execute(
+        "SELECT 1 FROM participants WHERE room_id=? AND participant_id=?",
+        (room_id, participant_id),
+    ).fetchone())
+
+
+@app.post("/api/rooms/join-request")
+async def create_join_request(payload: dict[str, Any]) -> JSONResponse:
+    room_name = payload.get("room_name")
+    name = payload.get("name")
+    participant_id = payload.get("participant_id")
+    device_id = payload.get("device_id")
+    request_id = payload.get("request_id")
+    public_key = payload.get("public_key")
+    if not isinstance(room_name, str):
+        return JSONResponse({"detail": "Enter the room name shared by the creator."}, status_code=400, headers={"Cache-Control": "no-store"})
+    normalized = normalize_room_name(room_name)
+    if not ROOM_NAME_RE.fullmatch(normalized):
+        return JSONResponse({"detail": "Room name must be 2–40 characters and use only letters, numbers, spaces, hyphens or underscores."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not isinstance(name, str) or not name.strip() or len(name.strip()) > 32:
+        return JSONResponse({"detail": "Enter your name (up to 32 characters)."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not isinstance(participant_id, str) or not PARTICIPANT_RE.fullmatch(participant_id):
+        return JSONResponse({"detail": "This device could not prepare a join request. Please refresh and try again."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not isinstance(device_id, str) or not JOIN_DEVICE_ID_RE.fullmatch(device_id):
+        return JSONResponse({"detail": "This device could not prepare a private request identity."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not isinstance(request_id, str) or not JOIN_REQUEST_ID_RE.fullmatch(request_id):
+        return JSONResponse({"detail": "This join request identity is invalid."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not _valid_join_public_key(public_key):
+        return JSONResponse({"detail": "Could not prepare secure approval for this device. Please use an updated browser."}, status_code=400, headers={"Cache-Control": "no-store"})
+
+    room_id = room_id_for_name(normalized)
+    now = time.time()
+    with db() as conn:
+        if not conn.execute("SELECT 1 FROM rooms WHERE room_id=?", (room_id,)).fetchone():
+            return JSONResponse({"detail": "No room with that name exists yet. Ask the creator to create it first."}, status_code=404, headers={"Cache-Control": "no-store"})
+        prior = conn.execute(
+            "SELECT request_id, status FROM join_requests WHERE room_id=? AND device_id=?",
+            (room_id, device_id),
+        ).fetchone()
+        if prior:
+            if prior["request_id"] != request_id:
+                return JSONResponse({"detail": "A request has already been sent from this device. Reopen this page to check its status."}, status_code=409, headers={"Cache-Control": "no-store"})
+            return JSONResponse({"request_id": prior["request_id"], "status": prior["status"]}, headers={"Cache-Control": "no-store"})
+
+        count = conn.execute("SELECT COUNT(*) AS n FROM participants WHERE room_id=?", (room_id,)).fetchone()["n"]
+        if count >= 2:
+            return JSONResponse({"detail": "This private room already has two participants."}, status_code=409, headers={"Cache-Control": "no-store"})
+        reserved = conn.execute("SELECT 1 FROM join_requests WHERE room_id=? AND status='accepted' LIMIT 1", (room_id,)).fetchone()
+        if reserved:
+            return JSONResponse({"detail": "A join request has already been approved. Wait for that person to connect."}, status_code=409, headers={"Cache-Control": "no-store"})
+        pending_count = conn.execute("SELECT COUNT(*) AS n FROM join_requests WHERE room_id=? AND status='pending'", (room_id,)).fetchone()["n"]
+        if pending_count >= MAX_PENDING_JOIN_REQUESTS:
+            return JSONResponse({"detail": "This room has several pending requests. Please try again later."}, status_code=429, headers={"Cache-Control": "no-store"})
+        conn.execute(
+            """INSERT INTO join_requests(
+                request_id,room_id,participant_id,device_id,display_name,public_key,status,created_at,updated_at
+            ) VALUES(?,?,?,?,?,?,'pending',?,?)""",
+            (request_id, room_id, participant_id, device_id, name.strip(), public_key, now, now),
+        )
+    return JSONResponse({"request_id": request_id, "status": "pending"}, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/rooms/join-requests/list")
+async def list_join_requests(payload: dict[str, Any]) -> JSONResponse:
+    room_id = payload.get("room_id")
+    participant_id = payload.get("participant_id")
+    auth_token = payload.get("auth_token")
+    if not isinstance(room_id, str) or not ROOM_RE.fullmatch(room_id):
+        return JSONResponse({"detail": "Private room not found."}, status_code=404, headers={"Cache-Control": "no-store"})
+    if not isinstance(participant_id, str) or not PARTICIPANT_RE.fullmatch(participant_id) or not isinstance(auth_token, str) or not TOKEN_RE.fullmatch(auth_token):
+        return JSONResponse({"detail": "Room approval authorization is required."}, status_code=400, headers={"Cache-Control": "no-store"})
+    with db() as conn:
+        if not _authorized_room_participant(conn, room_id, participant_id, auth_token):
+            return JSONResponse({"detail": "Only a room participant can review join requests."}, status_code=403, headers={"Cache-Control": "no-store"})
+        rows = conn.execute(
+            """SELECT request_id,participant_id,device_id,display_name,public_key,created_at
+               FROM join_requests WHERE room_id=? AND status='pending'
+               ORDER BY created_at ASC LIMIT ?""",
+            (room_id, MAX_PENDING_JOIN_REQUESTS),
+        ).fetchall()
+    return JSONResponse({"requests": [{
+        "request_id": row["request_id"], "participant_id": row["participant_id"],
+        "device_id": row["device_id"], "name": row["display_name"],
+        "public_key": row["public_key"], "created_at": row["created_at"],
+    } for row in rows]}, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/rooms/join-requests/decision")
+async def decide_join_request(payload: dict[str, Any]) -> JSONResponse:
+    room_id = payload.get("room_id")
+    participant_id = payload.get("participant_id")
+    auth_token = payload.get("auth_token")
+    request_id = payload.get("request_id")
+    decision = payload.get("decision")
+    envelope = payload.get("envelope")
+    if not isinstance(room_id, str) or not ROOM_RE.fullmatch(room_id):
+        return JSONResponse({"detail": "Private room not found."}, status_code=404, headers={"Cache-Control": "no-store"})
+    if not isinstance(participant_id, str) or not PARTICIPANT_RE.fullmatch(participant_id) or not isinstance(auth_token, str) or not TOKEN_RE.fullmatch(auth_token):
+        return JSONResponse({"detail": "Room approval authorization is required."}, status_code=400, headers={"Cache-Control": "no-store"})
+    if not isinstance(request_id, str) or not JOIN_REQUEST_ID_RE.fullmatch(request_id) or decision not in {"accept", "reject"}:
+        return JSONResponse({"detail": "Choose a valid join request and action."}, status_code=400, headers={"Cache-Control": "no-store"})
+    approval_json = None
+    if decision == "accept":
+        if not isinstance(envelope, dict):
+            return JSONResponse({"detail": "A secure approval envelope is required."}, status_code=400, headers={"Cache-Control": "no-store"})
+        ephemeral_public_key, iv, ciphertext = envelope.get("ephemeral_public_key"), envelope.get("iv"), envelope.get("data")
+        if not _valid_join_public_key(ephemeral_public_key) or not isinstance(iv, str) or len(iv) != 16 or not isinstance(ciphertext, str) or not 80 <= len(ciphertext) <= 6000:
+            return JSONResponse({"detail": "The secure approval package is incomplete."}, status_code=400, headers={"Cache-Control": "no-store"})
+        approval_json = json.dumps({"ephemeral_public_key": ephemeral_public_key, "iv": iv, "data": ciphertext}, separators=(",", ":"))
+
+    now = time.time()
+    with db() as conn:
+        if not _authorized_room_participant(conn, room_id, participant_id, auth_token):
+            return JSONResponse({"detail": "Only a room participant can approve this request."}, status_code=403, headers={"Cache-Control": "no-store"})
+        request = conn.execute(
+            "SELECT participant_id,status FROM join_requests WHERE room_id=? AND request_id=?",
+            (room_id, request_id),
+        ).fetchone()
+        if not request or request["status"] != "pending":
+            return JSONResponse({"detail": "This join request is no longer pending."}, status_code=409, headers={"Cache-Control": "no-store"})
+        if decision == "accept":
+            count = conn.execute("SELECT COUNT(*) AS n FROM participants WHERE room_id=?", (room_id,)).fetchone()["n"]
+            reserved = conn.execute("SELECT 1 FROM join_requests WHERE room_id=? AND status='accepted' LIMIT 1", (room_id,)).fetchone()
+            if count >= 2 or reserved:
+                return JSONResponse({"detail": "This private room is already full or another request was approved."}, status_code=409, headers={"Cache-Control": "no-store"})
+            conn.execute(
+                "UPDATE join_requests SET status='accepted',approval_json=?,updated_at=? WHERE room_id=? AND request_id=?",
+                (approval_json, now, room_id, request_id),
+            )
+            conn.execute(
+                "UPDATE join_requests SET status='closed',updated_at=? WHERE room_id=? AND status='pending' AND request_id<>?",
+                (now, room_id, request_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE join_requests SET status='rejected',updated_at=? WHERE room_id=? AND request_id=?",
+                (now, room_id, request_id),
+            )
+    return JSONResponse({"status": "accepted" if decision == "accept" else "rejected"}, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/rooms/join-request/status")
+async def join_request_status(payload: dict[str, Any]) -> JSONResponse:
+    room_id, request_id, device_id = payload.get("room_id"), payload.get("request_id"), payload.get("device_id")
+    if not isinstance(room_id, str) or not ROOM_RE.fullmatch(room_id) or not isinstance(request_id, str) or not JOIN_REQUEST_ID_RE.fullmatch(request_id) or not isinstance(device_id, str) or not JOIN_DEVICE_ID_RE.fullmatch(device_id):
+        return JSONResponse({"detail": "Join request identity is invalid."}, status_code=400, headers={"Cache-Control": "no-store"})
+    with db() as conn:
+        row = conn.execute(
+            "SELECT status,approval_json FROM join_requests WHERE room_id=? AND request_id=? AND device_id=?",
+            (room_id, request_id, device_id),
+        ).fetchone()
+    if not row:
+        return JSONResponse({"detail": "Join request not found. Please send a request again."}, status_code=404, headers={"Cache-Control": "no-store"})
+    response = {"status": row["status"]}
+    if row["status"] in {"accepted", "completed"} and row["approval_json"]:
+        response["envelope"] = json.loads(row["approval_json"])
+    return JSONResponse(response, headers={"Cache-Control": "no-store"})
+
+
 PUBLIC_SITE_URL = "https://securechatbox-ki63.onrender.com"
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
@@ -466,6 +661,11 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
                 ).fetchone()
             recovery_saved = bool(saved and saved["recovery_hash"] and recovery_verifier
                                   and hmac.compare_digest(saved["recovery_hash"], recovery_verifier))
+            if action == "join":
+                conn.execute(
+                    "UPDATE join_requests SET status='completed', updated_at=? WHERE room_id=? AND participant_id=? AND status='accepted'",
+                    (time.time(), room_id, participant_id),
+                )
 
         async with _room_lock(room_id):
             peers = room_sockets.setdefault(room_id, {})
