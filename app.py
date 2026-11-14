@@ -298,6 +298,12 @@ async def verify_room_access(payload: dict[str, Any]) -> JSONResponse:
         count = conn.execute("SELECT COUNT(*) AS n FROM participants WHERE room_id=?", (room_id,)).fetchone()["n"]
         if not existing and count >= 2:
             return JSONResponse({"detail": "This private room already has two participants. Ask the creator for a new room."}, status_code=409, headers={"Cache-Control": "no-store"})
+        reservation = conn.execute(
+            "SELECT participant_id FROM join_requests WHERE room_id=? AND status='accepted' LIMIT 1",
+            (room_id,),
+        ).fetchone()
+        if not existing and reservation and reservation["participant_id"] != participant_id:
+            return JSONResponse({"detail": "A join request has already been approved. Wait for that device to join."}, status_code=409, headers={"Cache-Control": "no-store"})
     return JSONResponse({"status": "verified"}, headers={"Cache-Control": "no-store"})
 
 @app.post("/api/rooms/resolve-name")
@@ -638,6 +644,13 @@ async def chat_socket(websocket: WebSocket, room_id: str) -> None:
             count = conn.execute("SELECT COUNT(*) AS n FROM participants WHERE room_id=?", (room_id,)).fetchone()["n"]
             if not existing and count >= 2:
                 await websocket.close(code=1008, reason="This private room already has two participants")
+                return
+            reservation = conn.execute(
+                "SELECT participant_id FROM join_requests WHERE room_id=? AND status='accepted' LIMIT 1",
+                (room_id,),
+            ).fetchone()
+            if not existing and reservation and reservation["participant_id"] != participant_id:
+                await websocket.close(code=1008, reason="A join request has already been approved")
                 return
             now = time.time()
             conn.execute(
