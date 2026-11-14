@@ -132,11 +132,14 @@ class JoinApprovalUiTests(unittest.TestCase):
 
     def test_owner_accept_and_reject_flow_uses_secure_envelope(self):
         self.assertIn('id="joinRequestPanel"', self.html)
-        self.assertIn("Accept request", self.html)
+        self.assertIn("accept.textContent='Accept'", self.html)
+        self.assertIn("Tap Accept to let this person join. No password needed.", self.html)
+        self.assertIn("approvalRoomKeyBytes", self.html)
+        self.assertIn("approvalWrappingKey", self.html)
+        self.assertIn("await deriveBits(pass,roomId+':e2e:v1')", self.html)
         self.assertIn("Reject", self.html)
         self.assertIn("crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'}", self.html)
         self.assertIn("SecureChatBox join approval v1:", self.html)
-        self.assertIn("const aesBits=await deriveBits(pass,roomId+':e2e:v1')", self.html)
         self.assertIn("decision:'accept'", self.html)
         self.assertIn("decision:'reject'", self.html)
 
