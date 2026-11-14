@@ -703,6 +703,43 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 }
 
 
+
+/* One-time, owner-approved room joining */
+.request-join-button{
+ width:100%;min-height:44px;margin-top:9px;
+ background:#fbf5f9;color:#8c607e;border:1px solid #eadce7;
+ box-shadow:none;font-weight:700;
+}
+.request-join-button:hover{background:#f4e8f0;box-shadow:0 5px 15px #9b6b8616}
+.request-join-help{margin:0;color:#9a8998;font-size:.72rem;line-height:1.45;text-align:center}
+.join-request-panel{
+ margin:10px 14px 12px;padding:13px;
+ border:1px solid #ecdce7;border-radius:17px;
+ background:linear-gradient(110deg,#fff9fc,#faf7fc);
+ box-shadow:0 7px 20px #7149620b;
+}
+.join-request-panel.hidden{display:none}
+.join-request-heading{display:grid;gap:3px;margin-bottom:9px}
+.join-request-heading strong{font-size:.85rem;color:#654960}
+.join-request-heading span{font-size:.7rem;color:#9c8799}
+.join-request-card{
+ padding:11px;border:1px solid #f0e5ed;border-radius:13px;
+ background:#fff;margin-top:8px;display:grid;gap:8px;
+}
+.join-request-card strong{font-size:.8rem;color:#60485e}
+.join-request-card p{font-size:.7rem;line-height:1.45;color:#927f90;margin:0}
+.join-request-card label{display:grid;gap:4px;color:#8b7285;font-size:.68rem;font-weight:650}
+.join-request-card input{min-height:40px;border-radius:10px;padding:9px 11px;border:1px solid #eadde7;background:#fffafd}
+.join-request-actions{display:flex;gap:8px}
+.join-request-actions button{min-height:38px;padding:8px 12px;font-size:.74rem}
+.join-request-actions button:first-child{flex:1;background:linear-gradient(145deg,#b17d9b,#8b6285)}
+.join-request-actions button:last-child{background:#faf3f7;color:#976b83;box-shadow:none;border:1px solid #ecdee7}
+@media(max-width:720px){
+ .join-request-panel{margin:9px 10px;padding:11px}
+ .join-request-card{padding:10px}
+ .request-join-help{font-size:.69rem}
+}
+
 /* Encrypted voice-note controls */
 .voice-record{
  width:43px;height:46px;min-height:46px;flex:none;padding:0;border-radius:50%;
@@ -781,7 +818,9 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
    <label class="field-label">Shared secret phrase<div class="secret-field"><input id="secret" type="password" name="securechat-room-shared-phrase" placeholder="Enter your shared password" autocomplete="new-password" autocapitalize="off" spellcheck="false" readonly aria-describedby="secretHint"><button type="button" id="toggleSecret" class="secret-toggle" aria-label="Show password" aria-pressed="false">Show</button></div></label>
    <div id="secretHint" class="secret-hint">Use the same shared password on both phones. Room names locate chats; this password protects access. Capital letters and spaces matter.</div>
   </div>
-  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with room name &amp; password</button></div><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
+  <div class="actions"><button id="create">Create a private room</button><button id="connect" class="secondary">Join with room name &amp; password</button></div>
+  <button type="button" id="requestJoin" class="request-join-button">Request to join this room</button>
+  <p class="request-join-help">No password needed to request access. The room owner will approve it.</p><div id="inviteHint" class="invite-hint hidden">You opened a private invite. Enter the same shared secret phrase and tap <strong>Join this private chat</strong>. Do not create a new room.</div>
   <div class="pair-entry">
    <button type="button" id="showPairCodeForm">Have a pairing code? Join without a link</button>
    <div id="pairCodeForm" class="pair-code-form hidden">
@@ -798,6 +837,10 @@ header{position:relative;z-index:8;background:rgba(255,255,255,.94);border-botto
 </section>
 <section id="chatArea" class="chatbg hidden">
  <div class="chatmeta" id="roomMeta">Connecting securely…</div>
+ <div id="joinRequestPanel" class="join-request-panel hidden" aria-live="polite">
+  <div class="join-request-heading"><strong>Private room join requests</strong><span>Only approve someone you recognize</span></div>
+  <div id="joinRequestList" class="join-request-list"></div>
+ </div>
  <div class="chat-tools">
   <label class="sound"><input id="soundOn" type="checkbox" checked> Sound</label>
  </div>
@@ -847,6 +890,7 @@ const enc=new TextEncoder(),dec=new TextDecoder(),rendered=new Set(),messageNode
 const MAX_VOICE_DURATION_SECONDS=30,MAX_VOICE_BYTES=240*1024;
 let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceBytes=0,voiceStartedAt=0,voiceTimer=null,voiceHardStopTimer=null,voiceDurationSeconds=0,voicePreviewBlob=null,voicePreviewUrl=null,voiceDiscardOnStop=false,voiceTooLarge=false;
 const voiceObjectUrls=[];
+let ownerRequestPollTimer=null,joinRequestPollTimer=null,joinRequestPollBusy=false,pendingOwnerRequests=[],activeJoinRequestRoomId=null;
 function b64url(bytes){let s='';bytes.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function b64bytes(s){let v=s.replace(/-/g,'+').replace(/_/g,'/');v+='='.repeat((4-v.length%4)%4);return Uint8Array.from(atob(v),c=>c.charCodeAt(0))}
 function randomHex(n=16){return Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,'0')).join('')}
@@ -913,8 +957,8 @@ const REMEMBERED_DB_NAME='securechat-remembered-device';
 function openRememberedSessionsDb(){
  return new Promise((resolve,reject)=>{
   if(!window.indexedDB){reject(new Error('This browser does not support remembered sessions.'));return}
-  const request=indexedDB.open(REMEMBERED_DB_NAME,1);
-  request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains('sessions'))db.createObjectStore('sessions',{keyPath:'roomId'})};
+  const request=indexedDB.open(REMEMBERED_DB_NAME,2);
+  request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains('sessions'))db.createObjectStore('sessions',{keyPath:'roomId'});if(!db.objectStoreNames.contains('joinRequests'))db.createObjectStore('joinRequests',{keyPath:'roomId'})};
   request.onsuccess=()=>resolve(request.result);
   request.onerror=()=>reject(request.error||new Error('Could not open this device’s private session store.'));
   request.onblocked=()=>reject(new Error('The private session store is busy. Close other SecureChatBox tabs and retry.'));
@@ -954,6 +998,30 @@ async function forgetRememberedSession(targetRoom){
   tx.onabort=()=>{db.close();reject(tx.error||new Error('Forgetting this device was interrupted.'))};
  });
 }
+
+async function readJoinRequestRecord(targetRoom){
+ const db=await openRememberedSessionsDb();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('joinRequests','readonly'),request=tx.objectStore('joinRequests').get(targetRoom);let record=null;
+  request.onsuccess=()=>{record=request.result||null};request.onerror=()=>reject(request.error||new Error('Could not read the pending request.'));
+  tx.oncomplete=()=>{db.close();resolve(record)};tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not read the pending request.'))};tx.onabort=()=>{db.close();reject(tx.error||new Error('The pending request read was interrupted.'))};
+ });
+}
+async function writeJoinRequestRecord(record){
+ const db=await openRememberedSessionsDb();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('joinRequests','readwrite');tx.objectStore('joinRequests').put(record);
+  tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not save the pending request.'))};tx.onabort=()=>{db.close();reject(tx.error||new Error('Saving the pending request was interrupted.'))};
+ });
+}
+async function deleteJoinRequestRecord(targetRoom){
+ const db=await openRememberedSessionsDb();
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction('joinRequests','readwrite');tx.objectStore('joinRequests').delete(targetRoom);
+  tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error||new Error('Could not clear the pending request.'))};tx.onabort=()=>{db.close();reject(tx.error||new Error('Clearing the pending request was interrupted.'))};
+ });
+}
+
 async function saveRememberedDeviceSession(){
  if(!window.indexedDB||!key||!currentAuthToken||!currentRecoveryCode||!validRoom(roomId)||!participantId)return false;
  const iv=crypto.getRandomValues(new Uint8Array(12));
@@ -988,6 +1056,18 @@ async function resumeRememberedDevice(){
  if(!validRoom(targetRoom)||!window.indexedDB||!window.crypto?.subtle)return;
  try{
   const saved=await loadRememberedDeviceSession(targetRoom);
+  if(saved){await deleteJoinRequestRecord(targetRoom).catch(()=>{})}
+  else{
+   const pendingRequest=await readJoinRequestRecord(targetRoom);
+   if(pendingRequest){
+    $('roomName').value=pendingRequest.roomName||localStorage.getItem('secureChatRoomName')||'';
+    $('displayName').value=pendingRequest.name||localStorage.getItem('secureChatName')||'';
+    setSetupStatus('Your one-time join request is saved. Checking whether the room owner has approved it…');
+    pollPendingJoinRequest(pendingRequest);
+    joinRequestPollTimer=setInterval(()=>pollPendingJoinRequest(pendingRequest),4500);
+    return;
+   }
+  }
   if(!saved)return;
   roomId=saved.roomId;participantId=saved.participantId;key=saved.encryptionKey;
   localStorage.setItem('secureChatRoom',roomId);
@@ -1142,6 +1222,177 @@ async function sendVoiceNote(){
  }catch(error){setVoiceStatus(error.message||'Voice note could not be sent. Please try again.')}
  finally{button.disabled=false}
 }
+
+async function postJson(url,body){
+ const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify(body)});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(data.detail||'The request could not be completed.');
+ return data;
+}
+async function refreshOwnerJoinRequests(){
+ if(!roomId||!participantId||!currentAuthToken||!ws||ws.readyState!==WebSocket.OPEN||document.visibilityState==='hidden')return;
+ try{
+  const data=await postJson('/api/rooms/join-requests/list',{room_id:roomId,participant_id:participantId,auth_token:currentAuthToken});
+  pendingOwnerRequests=data.requests||[];renderOwnerJoinRequests();
+ }catch(error){console.warn('Could not refresh room join requests:',error)}
+}
+function renderOwnerJoinRequests(){
+ const panel=$('joinRequestPanel'),list=$('joinRequestList');if(!panel||!list)return;
+ list.replaceChildren();
+ if(!pendingOwnerRequests.length){panel.classList.add('hidden');return}
+ panel.classList.remove('hidden');
+ for(const request of pendingOwnerRequests){
+  const card=document.createElement('article');card.className='join-request-card';
+  const title=document.createElement('strong');title.textContent=request.name+' wants to join';
+  const note=document.createElement('p');note.textContent='Confirm your existing room password once to securely share the chat key with this device.';
+  const label=document.createElement('label');label.textContent='Your shared room password';
+  const secret=document.createElement('input');secret.type='password';secret.autocomplete='current-password';secret.placeholder='Enter your room password';label.append(secret);
+  const actions=document.createElement('div');actions.className='join-request-actions';
+  const accept=document.createElement('button');accept.type='button';accept.textContent='Accept request';
+  const reject=document.createElement('button');reject.type='button';reject.className='secondary';reject.textContent='Reject';
+  accept.onclick=()=>approveJoinRequest(request,secret,accept,reject);
+  reject.onclick=()=>rejectJoinRequest(request,reject,accept);
+  actions.append(accept,reject);card.append(title,note,label,actions);list.append(card);
+ }
+}
+async function approveJoinRequest(request,secretInput,acceptButton,rejectButton){
+ const pass=secretInput.value;
+ if(!pass){secretInput.focus();return}
+ acceptButton.disabled=true;rejectButton.disabled=true;secretInput.disabled=true;
+ try{
+  setStatus('Preparing secure approval…');
+  const aesBits=await deriveBits(pass,roomId+':e2e:v1');
+  const authBits=await deriveBits(pass,roomId+':auth:v1');
+  const authToken=b64url(new Uint8Array(authBits));
+  if(authToken!==currentAuthToken)throw new Error('That password does not match this room. Check the exact shared phrase and try again.');
+  const recipientPublic=await crypto.subtle.importKey('raw',b64bytes(request.public_key),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const ephemeral=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+  const shared=await crypto.subtle.deriveBits({name:'ECDH',public:recipientPublic},ephemeral.privateKey,256);
+  const hkdf=await crypto.subtle.importKey('raw',shared,'HKDF',false,['deriveKey']);
+  const wrapKey=await crypto.subtle.deriveKey(
+   {name:'HKDF',hash:'SHA-256',salt:enc.encode(request.request_id),info:enc.encode('SecureChatBox join approval v1:'+roomId)},
+   hkdf,{name:'AES-GCM',length:256},false,['encrypt']
+  );
+  const recoveryCode=b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const bundle={roomKey:b64url(new Uint8Array(aesBits)),authToken,recoveryCode,participantId:request.participant_id,name:request.name,requestId:request.request_id};
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ciphertext=await crypto.subtle.encrypt({name:'AES-GCM',iv},wrapKey,enc.encode(JSON.stringify(bundle)));
+  const ephemeralPublic=b64url(new Uint8Array(await crypto.subtle.exportKey('raw',ephemeral.publicKey)));
+  await postJson('/api/rooms/join-requests/decision',{
+   room_id:roomId,participant_id:participantId,auth_token:currentAuthToken,
+   request_id:request.request_id,decision:'accept',
+   envelope:{ephemeral_public_key:ephemeralPublic,iv:b64url(iv),data:b64url(new Uint8Array(ciphertext))}
+  });
+  secretInput.value='';setStatus('Connected securely');$('roomMeta').textContent=request.name+' has been approved. Their device will connect automatically.';
+  pendingOwnerRequests=pendingOwnerRequests.filter(item=>item.request_id!==request.request_id);renderOwnerJoinRequests();
+ }catch(error){
+  setStatus('Connected securely');$('roomMeta').textContent=error.message||'Could not approve this request.';
+  acceptButton.disabled=false;rejectButton.disabled=false;secretInput.disabled=false;secretInput.focus();
+ }
+}
+async function rejectJoinRequest(request,rejectButton,acceptButton){
+ rejectButton.disabled=true;acceptButton.disabled=true;
+ try{
+  await postJson('/api/rooms/join-requests/decision',{
+   room_id:roomId,participant_id:participantId,auth_token:currentAuthToken,
+   request_id:request.request_id,decision:'reject'
+  });
+  pendingOwnerRequests=pendingOwnerRequests.filter(item=>item.request_id!==request.request_id);renderOwnerJoinRequests();
+  $('roomMeta').textContent='Join request rejected.';
+ }catch(error){$('roomMeta').textContent=error.message||'Could not reject this request.';rejectButton.disabled=false;acceptButton.disabled=false}
+}
+async function submitJoinRequest(record){
+ const data=await postJson('/api/rooms/join-request',{
+  room_name:record.roomName,name:record.name,participant_id:record.participantId,
+  device_id:record.deviceId,request_id:record.requestId,public_key:record.publicKey
+ });
+ record.serverSubmitted=true;record.serverStatus=data.status||'pending';await writeJoinRequestRecord(record);
+}
+async function completeApprovedJoin(record,envelope){
+ try{
+  const ephemeralPublic=await crypto.subtle.importKey('raw',b64bytes(envelope.ephemeral_public_key),{name:'ECDH',namedCurve:'P-256'},false,[]);
+  const shared=await crypto.subtle.deriveBits({name:'ECDH',public:ephemeralPublic},record.privateKey,256);
+  const hkdf=await crypto.subtle.importKey('raw',shared,'HKDF',false,['deriveKey']);
+  const wrapKey=await crypto.subtle.deriveKey(
+   {name:'HKDF',hash:'SHA-256',salt:enc.encode(record.requestId),info:enc.encode('SecureChatBox join approval v1:'+record.roomId)},
+   hkdf,{name:'AES-GCM',length:256},false,['decrypt']
+  );
+  const raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64bytes(envelope.iv)},wrapKey,b64bytes(envelope.data));
+  const bundle=JSON.parse(dec.decode(raw));
+  if(bundle.requestId!==record.requestId||bundle.participantId!==record.participantId||typeof bundle.roomKey!=='string'||typeof bundle.authToken!=='string'||typeof bundle.recoveryCode!=='string')throw new Error('The approval did not match this device request.');
+  const roomKey=b64bytes(bundle.roomKey);
+  if(roomKey.length!==32||! /^[A-Za-z0-9_-]{40,100}$/.test(bundle.authToken)||! /^[A-Za-z0-9_-]{40,100}$/.test(bundle.recoveryCode))throw new Error('The secure approval package was incomplete.');
+  key=await crypto.subtle.importKey('raw',roomKey,{name:'AES-GCM'},false,['encrypt','decrypt']);
+  roomId=record.roomId;participantId=record.participantId;currentAuthToken=bundle.authToken;currentRecoveryCode=bundle.recoveryCode;activeJoinRequestRoomId=roomId;
+  localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);
+  localStorage.setItem('secureChatRoomName',record.roomName);localStorage.setItem('secureChatName',bundle.name||record.name);
+  localStorage.setItem('securechat:recovery:'+roomId,currentRecoveryCode);
+  $('roomName').value=record.roomName;$('displayName').value=bundle.name||record.name;
+  if(joinRequestPollTimer){clearInterval(joinRequestPollTimer);joinRequestPollTimer=null}
+  $('messages').replaceChildren();rendered.clear();messageNodes.clear();messageStates.clear();readSent.clear();
+  if(location.hash.slice(1)!==roomId)location.hash=roomId;
+  setSetupStatus('Approved! Opening your private chat…');
+  connectSocket('join',currentAuthToken,currentRecoveryCode);
+ }catch(error){setSetupStatus(error.message||'Could not open the approved private room. Keep this page open and try again.')}
+}
+async function pollPendingJoinRequest(record){
+ if(joinRequestPollBusy)return;joinRequestPollBusy=true;
+ try{
+  if(!record.serverSubmitted)await submitJoinRequest(record);
+  let status;
+  try{
+   status=await postJson('/api/rooms/join-request/status',{room_id:record.roomId,request_id:record.requestId,device_id:record.deviceId});
+  }catch(error){
+   if((error.message||'').toLowerCase().includes('join request not found')){
+    record.serverSubmitted=false;await writeJoinRequestRecord(record);await submitJoinRequest(record);
+    status=await postJson('/api/rooms/join-request/status',{room_id:record.roomId,request_id:record.requestId,device_id:record.deviceId});
+   }else throw error;
+  }
+  record.serverStatus=status.status||'pending';await writeJoinRequestRecord(record);
+  if(status.status==='pending'){
+   setSetupStatus('Your request has been sent once. Waiting for the room owner to approve it…');
+  }else if(status.status==='accepted'||status.status==='completed'){
+   if(status.envelope){if(joinRequestPollTimer){clearInterval(joinRequestPollTimer);joinRequestPollTimer=null}await completeApprovedJoin(record,status.envelope)}
+  }else if(status.status==='rejected'){
+   if(joinRequestPollTimer){clearInterval(joinRequestPollTimer);joinRequestPollTimer=null}
+   setSetupStatus('The room owner declined this request. Contact them if you still need access.');
+  }else if(status.status==='closed'){
+   if(joinRequestPollTimer){clearInterval(joinRequestPollTimer);joinRequestPollTimer=null}
+   setSetupStatus('The room was joined by someone else. Ask the owner if you need a new invitation.');
+  }
+ }catch(error){setSetupStatus(error.message||'Your request is saved on this device. We will keep checking when the connection returns.')}
+ finally{joinRequestPollBusy=false}
+}
+async function startJoinRequest(){
+ const roomName=$('roomName').value.trim().replace(/\s+/g,' '),name=$('displayName').value.trim();
+ if(!roomName){setSetupStatus('Enter the room name first.');$('roomName').focus();return}
+ if(!name){setSetupStatus('Enter your name first.');$('displayName').focus();return}
+ if(!window.crypto?.subtle||!window.indexedDB){setSetupStatus('This browser cannot store the secure one-time request. Use an updated browser.');return}
+ if(!/^[a-z0-9][a-z0-9 _-]{1,39}$/i.test(roomName)){setSetupStatus('Room name must be 2–40 characters and use only letters, numbers, spaces, hyphens or underscores.');return}
+ const button=$('requestJoin');button.disabled=true;
+ try{
+  roomId=await resolveRoomIdByName(roomName);
+  let record=await readJoinRequestRecord(roomId);
+  if(record){
+   $('roomName').value=record.roomName;$('displayName').value=record.name;
+   setSetupStatus('This device already sent its one-time request. Checking its status…');
+  }else{
+   const pair=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);
+   const publicKey=b64url(new Uint8Array(await crypto.subtle.exportKey('raw',pair.publicKey)));
+   record={roomId,roomName,name,requestId:randomHex(32),deviceId:randomHex(16),participantId:randomHex(16),privateKey:pair.privateKey,publicKey,serverSubmitted:false,serverStatus:'pending',createdAt:Date.now()};
+   await writeJoinRequestRecord(record);
+   localStorage.setItem('secureChatRoom',roomId);localStorage.setItem('secureChatRoomName',roomName);localStorage.setItem('secureChatName',name);
+   setSetupStatus('Sending your one-time request…');
+  }
+  await pollPendingJoinRequest(record);
+  if(joinRequestPollTimer){clearInterval(joinRequestPollTimer);joinRequestPollTimer=null}
+  if(!activeJoinRequestRoomId&&!['rejected','closed'].includes(record.serverStatus)){
+   joinRequestPollTimer=setInterval(()=>pollPendingJoinRequest(record),4500);
+  }
+ }catch(error){setSetupStatus(error.message||'Could not send the join request. Please try again.')}
+ finally{button.disabled=false}
+}
+
 function showChat(){ $('setup').classList.add('hidden');$('chatArea').classList.remove('hidden');$('leave').classList.remove('hidden');$('moreMenuToggle').classList.remove('hidden');$('message').placeholder='Write a message…' }
 function showSetup(){ closeChatOptions();$('setup').classList.remove('hidden');$('chatArea').classList.add('hidden');$('leave').classList.add('hidden');$('moreMenuToggle').classList.add('hidden');$('shareInvite').classList.add('hidden');$('toggleRecovery').classList.add('hidden');$('invitePanel').classList.add('hidden');$('recoveryPanel').classList.add('hidden') }
 function timeLabel(ts){try{return new Intl.DateTimeFormat([], {hour:'2-digit',minute:'2-digit'}).format(new Date(ts*1000))}catch{return ''}}
@@ -1170,12 +1421,14 @@ function sendReceipt(type,id){if(ws&&ws.readyState===WebSocket.OPEN){ws.send(JSO
 function chatIsActive(){return document.visibilityState==='visible'&&(typeof document.hasFocus!=='function'||document.hasFocus())&&!$('chatArea').classList.contains('hidden')&&ws&&ws.readyState===WebSocket.OPEN}
 function markVisibleMessagesRead(){if(!chatIsActive())return;const viewport=$('messages').getBoundingClientRect();for(const [id,node] of messageNodes){if(node.classList.contains('mine')||readSent.has(id))continue;const rect=node.getBoundingClientRect();const visibleHeight=Math.max(0,Math.min(rect.bottom,viewport.bottom)-Math.max(rect.top,viewport.top));const visibleWidth=Math.max(0,Math.min(rect.right,viewport.right)-Math.max(rect.left,viewport.left));const denominator=Math.max(1,Math.min(rect.height,viewport.height));if(visibleHeight/denominator>=0.6&&visibleWidth>0)sendReceipt('read',id)}}
 function scheduleReadCheck(){if(readRefreshScheduled)return;readRefreshScheduled=true;requestAnimationFrame(()=>{readRefreshScheduled=false;markVisibleMessagesRead()})}
-function clearTimers(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}if(pingTimer){clearInterval(pingTimer);pingTimer=null}}
+function clearTimers(){if(reconnectTimer){clearTimeout(reconnectTimer);reconnectTimer=null}if(pingTimer){clearInterval(pingTimer);pingTimer=null}if(ownerRequestPollTimer){clearInterval(ownerRequestPollTimer);ownerRequestPollTimer=null}}
 function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=false;backgroundPaused=false;currentAuthToken=authToken;currentRecoveryCode=recoveryCode;activeAction=action;const protocol=location.protocol==='https:'?'wss':'ws';const socket=new WebSocket(`${protocol}://${location.host}/ws/${roomId}`);ws=socket;setStatus(action==='create'?'Creating private room…':'Connecting…');showChat();$('send').disabled=true;
  socket.onopen=()=>{if(ws!==socket)return;socket.send(JSON.stringify({type:'hello',action:activeAction,participant_id:participantId,name:$('displayName').value.trim(),auth_token:authToken,recovery_code:recoveryCode}));pingTimer=setInterval(()=>{if(ws===socket&&socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify({type:'ping'}))},25000)};
  socket.onmessage=async ev=>{if(ws!==socket)return;let packet;try{packet=JSON.parse(ev.data)}catch{return}
   if(packet.type==='ready'){
-   connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);saveRememberedDeviceSession().catch(error=>console.warn('Automatic reconnect could not be saved on this device:',error));
+   connected=true;reconnectDelay=1000;activeAction='join';$('send').disabled=false;setStatus('Connected securely');$('roomMeta').textContent='End-to-end encrypted · syncing messages';participantsStatus(packet.participants);saveRememberedDeviceSession().then(async saved=>{
+    if(saved&&activeJoinRequestRoomId){await deleteJoinRequestRecord(activeJoinRequestRoomId).catch(()=>{});activeJoinRequestRoomId=null}
+   }).catch(error=>console.warn('Automatic reconnect could not be saved on this device:',error));
    if(action==='create'||action==='join'){$('shareInvite').classList.remove('hidden');$('toggleRecovery').classList.remove('hidden')}
    activePairCode=packet.pair_code||localStorage.getItem('securechat:pair:'+roomId)||'';
    if(activePairCode){localStorage.setItem('securechat:pair:'+roomId,activePairCode);$('pairCodeDisplay').textContent=formatPairCode(activePairCode)}
@@ -1188,7 +1441,7 @@ function connectSocket(action,authToken,recoveryCode){clearTimers();manualLeave=
    $('recoveryCopyStatus').textContent=packet.recovery_saved?'Save a private backup before changing phones.':'This code is not linked to this room. Restore with the code you originally saved.'
    for(const item of (packet.history||[])){await displayPacket(item)}
    participantsStatus(packet.participants);
-   scheduleReadCheck();return;
+   refreshOwnerJoinRequests();if(ownerRequestPollTimer)clearInterval(ownerRequestPollTimer);ownerRequestPollTimer=setInterval(refreshOwnerJoinRequests,5000);scheduleReadCheck();return;
   }
   if(packet.type==='message'){await displayPacket(packet);return}
   if(packet.type==='message_ack'){const id=packet.message_id,oldId=packet.client_message_id,node=messageNodes.get(oldId);if(node){rendered.delete(oldId);rendered.add(id);node.dataset.messageId=id;messageNodes.delete(oldId);messageNodes.set(id,node);const state=messageStates.get(oldId)||'sent';messageStates.delete(oldId);messageStates.set(id,state);updateTicks(id)}return}
@@ -1282,6 +1535,7 @@ function prepareSharedPhraseMode(mode){
 }
 $('create').onclick=()=>{prepareSharedPhraseMode('create');start(true)};
 $('connect').onclick=()=>{prepareSharedPhraseMode('join');start(false)};
+$('requestJoin').onclick=startJoinRequest;
 $('showRecoveryForm').onclick=()=>{$('restoreBox').classList.toggle('hidden');if(!$('restoreBox').classList.contains('hidden'))$('restoreCode').focus()};
 async function restoreExistingChat(){const code=$('restoreCode').value.trim();if(!code){setSetupStatus('Paste your recovery code first.');return}setSetupStatus('Looking for your private chat…');$('restoreChat').disabled=true;try{const response=await fetch('/api/recover',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recovery_code:code})});const data=await response.json();if(!response.ok)throw new Error(data.detail||'Recovery code not found.');roomId=data.room_id;participantId=data.participant_id;$('roomName').value='';localStorage.setItem('secureChatRoom',roomId);localStorage.setItem(participantStorageKey(),participantId);localStorage.setItem('securechat:recovery:'+roomId,code);if(!$('displayName').value.trim())$('displayName').value=data.display_name||'';localStorage.setItem('secureChatName',$('displayName').value.trim());location.hash=roomId;configureInviteMode();$('restoreBox').classList.add('hidden');$('secret').focus();setSetupStatus('Chat found. Enter your shared secret phrase, then tap “Join private chat”.')}catch(e){setSetupStatus(e.message)}finally{$('restoreChat').disabled=false}}
 $('restoreChat').onclick=restoreExistingChat;
