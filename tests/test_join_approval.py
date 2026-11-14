@@ -100,6 +100,14 @@ class JoinApprovalTests(unittest.TestCase):
         second = self.client.post("/api/rooms/join-request", json=self.request_body(
             request_id="5" * 64, device_id="6" * 32, participant_id="7" * 32))
         self.assertEqual(second.status_code, 409)
+        approved_identity = self.client.post("/api/rooms/verify", json={
+            "room_id": self.room_id, "auth_token": self.owner_token, "participant_id": "3" * 32,
+        })
+        other_identity = self.client.post("/api/rooms/verify", json={
+            "room_id": self.room_id, "auth_token": self.owner_token, "participant_id": "7" * 32,
+        })
+        self.assertEqual(approved_identity.status_code, 200)
+        self.assertEqual(other_identity.status_code, 409)
 
     def test_unknown_rooms_and_bad_public_keys_are_rejected(self):
         missing = self.request_body()
